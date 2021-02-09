@@ -1,1 +1,9 @@
 HPrep/*
+Prep/*
+deepqtest
+deepqtest.py
+deepqtest.ipynb
+.ipynb_checkpoints
+testnb
+testnb.ipynb
+__pycache__/*
