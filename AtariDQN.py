@@ -12,7 +12,8 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 
 from tf_agents.agents.dqn import dqn_agent
-from tf_agents.environments import suite_atari
+#from tf_agents.environments import suite_atari
+import suite_atari_mod as suite_atari 
 from tf_agents.environments import tf_py_environment
 from tf_agents.networks import q_network
 from tf_agents.eval import metric_utils

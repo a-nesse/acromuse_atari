@@ -1,7 +1,8 @@
 import numpy as np
 import gym, json, os
 
-from tf_agents.environments import suite_atari
+#from tf_agents.environments import suite_atari
+import suite_atari_mod as suite_atari
 from tf_agents.environments import tf_py_environment
 
 from AtariNet import AtariNet
