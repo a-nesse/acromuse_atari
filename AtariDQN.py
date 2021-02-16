@@ -49,7 +49,7 @@ class AtariDQN:
         self.batch_size = self.dqn_conf['batch_size']
         self.learning_rate = self.dqn_conf['learning_rate']
         self.log_interval = self.dqn_conf['log_interval']
-        self.num_eval_episodes = self.dqn_conf['um_eval_episodes']
+        self.num_eval_episodes = self.dqn_conf['num_eval_episodes']
         self.eval_interval = self.dqn_conf['eval_interval']
 
         self.train_py_env = suite_atari.load(environment_name=self.dqn_conf['env_name'])
@@ -82,11 +82,12 @@ class AtariDQN:
             episode_return = 0.0
 
             while not time_step.is_last():
+
                 action_step = self.act(time_step)
                 time_step = self.eval_env.step(action_step.action)
                 episode_return += time_step.reward
-            total_return += episode_return
 
+            total_return += episode_return
         avg_return = total_return / self.num_eval_episodes
         return avg_return.numpy()[0]
 
@@ -115,6 +116,7 @@ class AtariDQN:
         """
         tf.compat.v1.enable_v2_behavior()
         self.train_env.reset()
+
         replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
             data_spec=self.agent.collect_data_spec,
             batch_size=self.train_env.batch_size,
@@ -124,9 +126,11 @@ class AtariDQN:
             sample_batch_size=self.batch_size,
             num_steps=2).prefetch(3)
         iterator = iter(dataset)
+
         self.agent.train = common.function(self.agent.train)
+
         self.agent.train_step_counter.assign(0)
-        
+
         avg_return = self.compute_avg_return()
         returns = [avg_return]
 
