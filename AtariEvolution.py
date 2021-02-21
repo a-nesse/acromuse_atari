@@ -45,9 +45,11 @@ class AtariEvolution:
     def _initialize_gen(self):
         obs_spec = self.env.observation_spec()
         action_spec = self.env.action_spec()
+        obs_shape = tuple(obs_spec.shape)
+        action_shape = (self.env.action_spec().maximum - self.env.action_spec().minimum + 1,)
         self.agents = []
         for _ in range(self.n_agents):
-            self.agents.append(AtariNet(obs_spec, action_spec, self.net_conf))
+            self.agents.append(AtariNet(obs_shape, action_shape, self.net_conf))
 
     def evolve(self):
         print('Initializing gen 1 ...')
