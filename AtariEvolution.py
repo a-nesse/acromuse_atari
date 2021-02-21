@@ -43,9 +43,7 @@ class AtariEvolution:
         self.evo = AtariGen(self.evo_conf)
 
     def _initialize_gen(self):
-        obs_spec = self.env.observation_spec()
-        action_spec = self.env.action_spec()
-        obs_shape = tuple(obs_spec.shape)
+        obs_shape = tuple(self.env.observation_spec().shape)
         action_shape = (self.env.action_spec().maximum - self.env.action_spec().minimum + 1,)
         self.agents = []
         for _ in range(self.n_agents):
