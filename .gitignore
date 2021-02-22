@@ -9,3 +9,4 @@ testnb.ipynb
 __pycache__/*
 testDQN
 testDQN.py
+saved_models/*
