@@ -44,24 +44,24 @@ class AtariEvolution:
 
     def _initialize_gen(self):
         obs_shape = tuple(self.env.observation_spec().shape)
-        action_shape = (self.env.action_spec().maximum - self.env.action_spec().minimum + 1,)
+        action_shape = self.env.action_spec().maximum - self.env.action_spec().minimum + 1
         self.agents = []
         for _ in range(self.n_agents):
             self.agents.append(AtariNet(obs_shape, action_shape, self.net_conf))
 
     def evolve(self):
-        print('Initializing gen 1 ...')
+        print('\nInitializing gen 1 ...\n')
         self._initialize_gen()
         self.probs = np.zeros(self.n_agents)
         self._generate_probs()
         for i in range(self.n_gens-1):
-            print('Evolving generation {} ...'.format(i+1))
+            print('\nEvolving generation {} ...\n'.format(i+1))
             new_agents = self.evo.new_gen(self.agents,self.probs)
             self.agents.clear()
             self.agents = new_agents
             print('Scoring ...')
             self._generate_probs()
-        print('Last generation finished.')
+        print('\nLast generation finished.\n')
 
     def _generate_probs(self):
         max_score = 0.0
@@ -80,6 +80,7 @@ class AtariEvolution:
             while not obs.is_last():
                 action = agent.predict(obs)
                 obs = self.env.step(action)
+                print(obs.reward)
                 score_run += obs.reward
             score += score_run
         return score/n_runs
@@ -87,18 +88,18 @@ class AtariEvolution:
     def demo(self):
         best = np.argmax(self.probs)
         best_agent = self.agents[best]
-        obs = self.env.reset()
+        obs = self.py_env.reset()
         score = 0.0
         while not obs.is_last():
-            self.env.render()
+            self.py_env.render()
             action = best_agent.predict(obs)
-            obs = self.env.step(action[0][0])
+            obs = self.py_env.step(action[0][0])
             score += obs.reward
         print('The highest rated agent scored {} in this game.'.format(score))
 
 def main():
     evolver = AtariEvolution('net.config','evo_preset.config')
-    evolver.evolve()
+    #evolver.evolve()
     evolver.demo()
 
 

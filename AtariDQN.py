@@ -153,7 +153,7 @@ class AtariDQN:
 
         avg_return = self.compute_avg_return()
         returns = [avg_return]
-
+        print('\nStart loop\n')
         for _ in range(self.num_iterations):
             # Collect a few steps using collect_policy and save to the replay buffer.
             self.collect_data(replay_buffer)
@@ -184,15 +184,16 @@ class AtariDQN:
         """
         Demo trained or loaded agent.
         """
-        time_step = self.eval_env.reset()
+        print('\nDemo')
+        time_step = self.eval_py_env.reset()
         score = 0.0
         if load_step:
             self.load_model(self.save_name,load_step)
         while not time_step.is_last():
             action_step = self.act(time_step)
-            time_step = self.eval_env.step(action_step.action)
+            time_step = self.eval_py_env.step(action_step.action)
             score += time_step.reward
-            self.eval_env.render()
+            self.eval_py_env.render()
             time.sleep(0.005)
         self.eval_py_env.close()
         print('\nThe agent scored {:.2f}\n'.format(score[0]))

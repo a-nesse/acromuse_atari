@@ -9,4 +9,6 @@ testnb.ipynb
 __pycache__/*
 testDQN
 testDQN.py
+testEvolution
+testEvolution.py
 saved_models/*
