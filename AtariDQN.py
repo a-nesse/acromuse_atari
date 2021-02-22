@@ -8,6 +8,7 @@ import imageio
 import IPython
 import matplotlib
 import matplotlib.pyplot as plt
+import pickle
 
 import tensorflow as tf
 
@@ -68,6 +69,8 @@ class AtariDQN:
         self.agent = dqn_agent.DqnAgent(self.step_spec,self.action_spec,q_network=self.q_net,optimizer=self.optimizer,td_errors_loss_fn=common.element_wise_squared_loss,train_step_counter=self.train_step_counter)
         self.agent.initialize()
 
+        self.save_name = self.dqn_conf['save_name']
+
     def act(self,obs):
         return self.agent.policy.action(obs)
 
@@ -110,6 +113,23 @@ class AtariDQN:
         for _ in range(self.initial_collect_steps):
             self.collect_step(buffer)
 
+    def save_model(self, step, name):
+        """
+        Method for saving agent.
+        """
+        filepath = os.path.join(os.getcwd(), 'saved_models', self.save_name, '-', str(step))
+        with open(filepath, 'wb') as f:
+            pickle.dump(self.q_net.get_weights(), f)
+
+    def load_model(self, name):
+        """
+        Method for loading agent.
+        """
+        filepath = os.path.join(os.getcwd(), 'saved_models', self.save_name,str(step))
+        with open(filepath, 'wb') as f:
+            new_weights = pickle.load(f)
+        self.q_net.set_weights(new_weights)
+
     def train(self, plot=True):
         """
         Adapted from https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial tutorial.
@@ -148,6 +168,7 @@ class AtariDQN:
                 print('step = {0}: loss = {1}'.format(step, train_loss))
 
             if step % self.eval_interval == 0:
+                self.save_model(step, self.save_name)
                 avg_return = self.compute_avg_return()
                 print('step = {0}: Average Return = {1}'.format(step, avg_return))
                 returns.append(avg_return)

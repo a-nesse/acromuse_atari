@@ -7,3 +7,5 @@ deepqtest.ipynb
 testnb
 testnb.ipynb
 __pycache__/*
+testDQN
+testDQN.py
