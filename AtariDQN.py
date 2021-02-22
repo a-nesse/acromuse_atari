@@ -113,7 +113,7 @@ class AtariDQN:
         for _ in range(self.initial_collect_steps):
             self.collect_step(buffer)
 
-    def save_model(self, step, name):
+    def save_model(self, step):
         """
         Method for saving agent.
         """
@@ -125,8 +125,8 @@ class AtariDQN:
         """
         Method for loading agent.
         """
-        filepath = os.path.join(os.getcwd(), 'saved_models', self.save_name,str(step))
-        with open(filepath, 'wb') as f:
+        filepath = os.path.join(os.getcwd(), 'saved_models', name + '-' + str(step))
+        with open(filepath, 'rb') as f:
             new_weights = pickle.load(f)
         self.q_net.set_weights(new_weights)
 
@@ -168,7 +168,7 @@ class AtariDQN:
                 print('step = {0}: loss = {1}'.format(step, train_loss))
 
             if step % self.eval_interval == 0:
-                self.save_model(step, self.save_name)
+                self.save_model(step)
                 avg_return = self.compute_avg_return()
                 print('step = {0}: Average Return = {1}'.format(step, avg_return))
                 returns.append(avg_return)
@@ -180,15 +180,22 @@ class AtariDQN:
             plt.xlabel('Iterations')
             plt.ylim(top=250)
 
-    def demo(self):
+    def demo(self, load_step = 0):
+        """
+        Demo trained or loaded agent.
+        """
         time_step = self.eval_env.reset()
         score = 0.0
+        if load_step:
+            self.load_model(self.save_name,load_step)
         while not time_step.is_last():
-            self.eval_env.step(self.act(time_step))
-            self.eval_py_env.render()
+            action_step = self.act(time_step)
+            time_step = self.eval_env.step(action_step.action)
+            score += time_step.reward
+            self.eval_env.render()
+            time.sleep(0.005)
         self.eval_py_env.close()
-        print('The agent scored {:.2f}'.format(score))
-
+        print('\nThe agent scored {:.2f}\n'.format(score[0]))
 
 def main():
     dqn = AtariDQN('net.config','dqn_preset.config')
