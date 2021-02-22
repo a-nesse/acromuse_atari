@@ -121,7 +121,7 @@ class AtariDQN:
         with open(filepath, 'wb') as f:
             pickle.dump(self.q_net.get_weights(), f)
 
-    def load_model(self, name):
+    def load_model(self, name, step):
         """
         Method for loading agent.
         """
