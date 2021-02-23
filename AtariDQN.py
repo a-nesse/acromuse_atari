@@ -117,7 +117,7 @@ class AtariDQN:
         """
         Method for saving agent.
         """
-        filepath = os.path.join(os.getcwd(), 'saved_models', self.save_name, '-', str(step))
+        filepath = os.path.join(os.getcwd(), 'saved_models', self.save_name + '-' + str(step))
         with open(filepath, 'wb') as f:
             pickle.dump(self.q_net.get_weights(), f)
 

@@ -50,7 +50,6 @@ class AtariGen:
         nw_1 = []
         nw_2 = []
         if self.alg == 'self.k_point_1':
-            #generating split for k_points_1 function
             self.k_split = np.sort(np.random.choice(np.arange(len(agent1.get_weights())), self.k, replace=False))
             print(self.k_split)
         for i in range(len(agent1.get_weights())):

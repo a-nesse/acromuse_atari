@@ -1,5 +1,6 @@
 import numpy as np
 import gym, json, os
+import pickle
 
 #from tf_agents.environments import suite_atari
 import suite_atari_mod as suite_atari
@@ -7,6 +8,8 @@ from tf_agents.environments import tf_py_environment
 
 from AtariNet import AtariNet
 from AtariGen import AtariGen
+
+import tensorflow as tf
 
 class AtariEvolution:
     """
@@ -35,12 +38,40 @@ class AtariEvolution:
         self.n_gens = self.evo_conf['n_gens']
         self.n_runs = self.evo_conf['n_runs']
 
+        self.save_k = self.evo_conf['save_k']
+        self.save_name = self.evo_conf['save_name']
+
         self.conv_layer_params = [tuple(x) for x in self.net_conf['conv_layer_params']]
         self.fc_layer_params = tuple(self.net_conf['fc_layer_params'])
 
         self.py_env = suite_atari.load(environment_name=self.env_name)
         self.env = tf_py_environment.TFPyEnvironment(self.py_env)
         self.evo = AtariGen(self.evo_conf)
+
+    def save_model(self, agent, gen, nr):
+        """
+        Method for saving agent.
+        """
+        filepath = os.path.join(os.getcwd(), 'saved_models', self.save_name + '-' + str(gen) + str(nr))
+        with open(filepath, 'wb') as f:
+            pickle.dump(agent, f)
+
+    def load_model(self, name):
+        """
+        Method for loading agent.
+        """
+        filepath = os.path.join(os.getcwd(), 'saved_models', name)
+        with open(filepath, 'rb') as f:
+            agent = pickle.load(f)
+        return agent
+
+    def save_top(self,gen):
+        """
+        Method for saving top-k performing agents.
+        """
+        top_k = np.argpartition(self.probs, -self.save_k)[-self.save_k:]
+        for i, idx in enumerate(top_k):
+            self.save_model(self.agents[idx], gen, i)
 
     def _initialize_gen(self):
         obs_shape = tuple(self.env.observation_spec().shape)
@@ -61,6 +92,7 @@ class AtariEvolution:
             self.agents = new_agents
             print('Scoring ...')
             self._generate_probs()
+            self.save_top(i)
         print('\nLast generation finished.\n')
 
     def _generate_probs(self):
@@ -77,29 +109,35 @@ class AtariEvolution:
         for _ in range(n_runs):
             score_run = 0.0
             obs = self.env.reset()
+            i=0
             while not obs.is_last():
+                i+=1
+                print(i)
+                self.env.render(mode='human')
                 action = agent.predict(obs)
                 obs = self.env.step(action)
-                print(obs.reward)
-                score_run += obs.reward
+                score_run += obs.reward.numpy()[0]
+            print('\nend_while\n')
+            self.py_env.close()
             score += score_run
         return score/n_runs
 
     def demo(self):
         best = np.argmax(self.probs)
         best_agent = self.agents[best]
-        obs = self.py_env.reset()
+        obs = self.env.reset()
         score = 0.0
         while not obs.is_last():
-            self.py_env.render()
+            self.env.render(mode='human')
             action = best_agent.predict(obs)
-            obs = self.py_env.step(action[0][0])
+            obs = self.env.step(action)
             score += obs.reward
+        self.py_env.close()
         print('The highest rated agent scored {} in this game.'.format(score))
 
 def main():
     evolver = AtariEvolution('net.config','evo_preset.config')
-    #evolver.evolve()
+    evolver.evolve()
     evolver.demo()
 
 
