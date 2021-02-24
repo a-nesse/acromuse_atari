@@ -18,11 +18,11 @@ class AtariNet(tf.keras.Sequential):
 
         self.add(tf.keras.Input(shape=input_shape))
         for c in net_conf['conv_layer_params']:
-            self.add(tf.keras.layers.Conv2D(c[0],c[1],c[2],activation=net_conf['conv_activation']))
+            self.add(tf.keras.layers.Conv2D(c[0],c[1],c[2],activation=net_conf['conv_activation'], kernel_initializer=eval(net_conf['initializer'])))
         self.add(tf.keras.layers.Flatten())
         for fc in net_conf['fc_layer_params']:
-            self.add(tf.keras.layers.Dense(fc, activation=net_conf['fc_activation']))
-        self.add(tf.keras.layers.Dense(action_shape, activation=net_conf['action_activation']))
+            self.add(tf.keras.layers.Dense(fc, activation=net_conf['fc_activation'], kernel_initializer=eval(net_conf['initializer'])))
+        self.add(tf.keras.layers.Dense(action_shape, activation=net_conf['action_activation'], kernel_initializer=eval(net_conf['initializer'])))
         self.build()
 
     def predict(self,observation):
