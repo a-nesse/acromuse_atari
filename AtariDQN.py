@@ -24,6 +24,8 @@ from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.trajectories import trajectory
 from tf_agents.utils import common
 
+from AtariNet import AtariNet
+
 class AtariDQN:
     """
     Class for training Deep-Q agent to play Atari games.
@@ -62,7 +64,7 @@ class AtariDQN:
         self.action_spec = self.train_env.action_spec()
         self.step_spec = self.train_env.time_step_spec()
 
-        self.q_net = q_network.QNetwork(self.obs_spec,self.action_spec,conv_layer_params=[tuple(c) for c in self.net_conf['conv_layer_params']],fc_layer_params=tuple(self.net_conf['fc_layer_params']))
+        self.q_net = q_network.QNetwork(self.obs_spec,self.action_spec,conv_layer_params=[tuple(c) for c in self.net_conf['conv_layer_params']],fc_layer_params=tuple(self.net_conf['fc_layer_params']),kernel_initializer=eval(self.net_conf['initializer']))
         self.optimizer = eval(self.dqn_conf['optimizer'])(learning_rate=self.dqn_conf['learning_rate'])
         self.train_step_counter = tf.Variable(0)
 
@@ -85,14 +87,14 @@ class AtariDQN:
             episode_return = 0.0
 
             while not time_step.is_last():
-
+                
                 action_step = self.act(time_step)
                 time_step = self.eval_env.step(action_step.action)
-                episode_return += time_step.reward
+                episode_return += time_step.reward.numpy()[0]
 
             total_return += episode_return
         avg_return = total_return / self.num_eval_episodes
-        return avg_return.numpy()[0]
+        return avg_return
 
     def collect_step(self, buffer):
         """
@@ -100,7 +102,7 @@ class AtariDQN:
         """
         time_step = self.train_env.current_time_step()
         action_step = self.agent.policy.action(time_step)
-        next_time_step = self.train_env.step(action_step.action)
+        next_time_step = self.train_env.step(action_step)
         traj = trajectory.from_transition(time_step, action_step, next_time_step)
 
         # Add trajectory to the replay buffer
@@ -153,14 +155,23 @@ class AtariDQN:
 
         avg_return = self.compute_avg_return()
         returns = [avg_return]
-        print('\nStart loop\n')
         for _ in range(self.num_iterations):
+            #c_start = time.time()
             # Collect a few steps using collect_policy and save to the replay buffer.
             self.collect_data(replay_buffer)
+            #c_stop = time.time()
+            #print('\nCollecting time: {}'.format(c_stop-c_start))
 
             # Sample a batch of data from the buffer and update the agent's network.
+            #e_start = time.time()
             experience, unused_info = next(iterator)
+            #e_stop = time.time()
+            #print('Sampling time: {}'.format(e_stop-e_start))
+
+            #t_start = time.time()
             train_loss = self.agent.train(experience).loss
+            #t_stop = time.time()
+            #print('Training time: {}'.format(t_stop-t_start))
 
             step = self.agent.train_step_counter.numpy()
 
@@ -190,6 +201,7 @@ class AtariDQN:
         if load_step:
             self.load_model(self.save_name,load_step)
         while not time_step.is_last():
+            
             action_step = self.act(time_step)
             time_step = self.eval_py_env.step(action_step.action)
             score += time_step.reward
