@@ -3,7 +3,7 @@ import gym
 import time
 import json
 import os
-import base64
+#import base64
 import pickle
 import time
 import sys
@@ -20,8 +20,6 @@ from tf_agents.metrics import tf_metrics
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.trajectories import trajectory
 from tf_agents.utils import common
-
-from AtariNet import AtariNet
 
 class AtariDQN:
     """
@@ -75,25 +73,25 @@ class AtariDQN:
     def act(self,obs):
         return self.agent.policy.action(obs)
 
-    def compute_avg_return(self):
+    def compute_avg_score(self):
         """
         Function from https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial tutorial.
         """
-        total_return = 0.0
+        total_score = 0.0
         for _ in range(self.num_eval_episodes):
 
             time_step = self.eval_env.reset()
-            episode_return = 0.0
+            episode_score = 0.0
 
             while not time_step.is_last():
                 
                 action_step = self.act(time_step)
                 time_step = self.eval_env.step(action_step.action)
-                episode_return += time_step.reward.numpy()[0]
+                episode_score += time_step.reward.numpy()[0]
 
-            total_return += episode_return
-        avg_return = total_return / self.num_eval_episodes
-        return avg_return
+            total_score += episode_score
+        avg_score = total_score / self.num_eval_episodes
+        return avg_score
 
     def collect_step(self, buffer):
         """
@@ -211,7 +209,7 @@ class AtariDQN:
 
         self.agent.train = common.function(self.agent.train)
 
-        avg_return = self.compute_avg_return()
+        avg_score = self.compute_avg_score()
         for _ in range(self.num_iterations):
 
             # Collect a few steps using collect_policy and save to the replay buffer.
@@ -222,42 +220,22 @@ class AtariDQN:
             train_loss = self.agent.train(experience).loss
 
             step = self.agent.train_step_counter.numpy()
-
+             
             if step % self.eval_interval == 0 and step != restart_step:
                 self.save_model(step)
                 self.save_replay()
-                avg_return = self.compute_avg_return()
+                avg_score = self.compute_avg_score()
                 self.write_log(step)
-                print('step = {0}: Average Return = {1}'.format(step, avg_return))
+                print('step = {}: Average Score = {}'.format(step, avg_score))
 
             if step % self.log_interval == 0:
-                self.log_data(start_time,passed_time,step,train_loss,avg_return)
-                print('step = {0}: loss = {1}'.format(step, train_loss))
-        
-
-    def demo(self, load_step = 0):
-        """
-        Demo trained or loaded agent.
-        """
-        print('\nDemo')
-        time_step = self.eval_py_env.reset()
-        score = 0.0
-        if load_step:
-            self.load_model(load_step)
-        while not time_step.is_last():
-            
-            action_step = self.act(time_step)
-            time_step = self.eval_py_env.step(action_step.action)
-            score += time_step.reward
-            self.eval_py_env.render()
-            time.sleep(0.005)
-        self.eval_py_env.close()
-        print('\nThe agent scored {:.2f}\n'.format(score[0]))
+                self.log_data(start_time,passed_time,step,train_loss,avg_score)
+                print('step = {}: loss = {}'.format(step, train_loss))
+                
 
 def main(step, net_conf='net.config', dqn_conf='dqn_preset.config'):
     dqn = AtariDQN(net_conf,dqn_conf)
     dqn.train(step)
-    dqn.demo()
 
 if __name__ == "__main__":
     args = sys.argv[1:]

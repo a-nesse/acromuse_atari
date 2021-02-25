@@ -41,11 +41,9 @@ class AtariEvolution:
         self.save_k = self.evo_conf['save_k']
         self.save_name = self.evo_conf['save_name']
 
-        self.conv_layer_params = [tuple(x) for x in self.net_conf['conv_layer_params']]
-        self.fc_layer_params = tuple(self.net_conf['fc_layer_params'])
-
         self.py_env = suite_atari.load(environment_name=self.env_name)
         self.env = tf_py_environment.TFPyEnvironment(self.py_env)
+
         self.evo = AtariGen(self.evo_conf)
 
     def save_model(self, agent, gen, nr):
@@ -122,23 +120,10 @@ class AtariEvolution:
             score += score_run
         return score/n_runs
 
-    def demo(self):
-        best = np.argmax(self.probs)
-        best_agent = self.agents[best]
-        obs = self.env.reset()
-        score = 0.0
-        while not obs.is_last():
-            self.env.render(mode='human')
-            action = best_agent.predict(obs)
-            obs = self.env.step(action)
-            score += obs.reward
-        self.py_env.close()
-        print('The highest rated agent scored {} in this game.'.format(score))
 
 def main():
     evolver = AtariEvolution('net.config','evo_preset.config')
     evolver.evolve()
-    evolver.demo()
 
 
 if __name__ == "__main__":
