@@ -4,11 +4,9 @@ import time
 import json
 import os
 import base64
-import imageio
-import IPython
-import matplotlib
-import matplotlib.pyplot as plt
 import pickle
+import time
+import sys
 
 import tensorflow as tf
 
@@ -19,7 +17,6 @@ from tf_agents.environments import tf_py_environment
 from tf_agents.networks import q_network
 from tf_agents.eval import metric_utils
 from tf_agents.metrics import tf_metrics
-from tf_agents.networks import q_network
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.trajectories import trajectory
 from tf_agents.utils import common
@@ -49,6 +46,7 @@ class AtariDQN:
         self.initial_collect_steps = self.dqn_conf['initial_collect_steps']
         self.collect_steps_per_iteration = self.dqn_conf['collect_steps_per_iteration']
         self.replay_buffer_max_length = self.dqn_conf['replay_buffer_max_length'] 
+        self.parallell_calls = self.dqn_conf['parallell_calls'] 
         self.batch_size = self.dqn_conf['batch_size']
         self.learning_rate = self.dqn_conf['learning_rate']
         self.log_interval = self.dqn_conf['log_interval']
@@ -72,6 +70,7 @@ class AtariDQN:
         self.agent.initialize()
 
         self.save_name = self.dqn_conf['save_name']
+        self.log = {}
 
     def act(self,obs):
         return self.agent.policy.action(obs)
@@ -123,73 +122,118 @@ class AtariDQN:
         with open(filepath, 'wb') as f:
             pickle.dump(self.q_net.get_weights(), f)
 
-    def load_model(self, name, step):
+    def load_model(self, step):
         """
         Method for loading agent.
         """
-        filepath = os.path.join(os.getcwd(), 'saved_models', name + '-' + str(step))
+        filepath = os.path.join(os.getcwd(), 'saved_models', self.save_name + '-' + str(step))
         with open(filepath, 'rb') as f:
             new_weights = pickle.load(f)
         self.q_net.set_weights(new_weights)
 
-    def train(self, plot=True):
+    def log_data(self, starttime, passed_time, step, loss, score):
         """
-        Adapted from https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial tutorial.
+        Function for logging training performance.
+        """
+        cur_time = time.time()
+        time = starttime - cur_time + passed_time
+        frames = step * self.batch_size
+        self.log[step] = [time,loss,score,frames]
+
+    def write_log(self,step):
+        """
+        Function for writing log.
+        """
+        filepath = os.path.join(os.getcwd(), 'logs', self.save_name + '-' + str(step))
+        with open(filepath, 'wb') as f:
+            pickle.dump(self.log, f)
+    
+    def load_log(self,step):
+        """
+        Function for loading log.
+        """
+        filepath = os.path.join(os.getcwd(), 'logs', self.save_name + '-' + str(step))
+        with open(filepath, 'rb') as f:
+            log = pickle.load(f)
+        self.log = log
+
+    def save_replay(self):
+        """
+        Function for saving replay buffer.
+        """
+        filepath = os.path.join(os.getcwd(), 'saved_models', self.save_name + '-experience')
+        with open(filepath, 'wb') as f:
+            pickle.dump(self.replay_buffer, f)
+
+    def load_replay(self):
+        """
+        Function for loading replay.
+        """
+        filepath = os.path.join(os.getcwd(), 'saved_models', self.save_name + '-experience')
+        with open(filepath, 'rb') as f:
+            replay = pickle.load(f)
+        self.replay_buffer = replay
+
+    def restart_training(self, step):
+        """
+        Function for restarting training from step.
+        """
+        self.load_model(step)
+        self.load_log(step)
+        self.load_replay()
+
+    def train(self, restart_step=0):
+        """
+        Adapted & modified from https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial tutorial.
         """
         tf.compat.v1.enable_v2_behavior()
         self.train_env.reset()
 
-        replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
-            data_spec=self.agent.collect_data_spec,
-            batch_size=self.train_env.batch_size,
-            max_length=self.replay_buffer_max_length)
-        dataset = replay_buffer.as_dataset(
-            num_parallel_calls=3,
+        start_time = time.time()
+        
+        if restart_step:
+            self.restart_training(restart_step)
+            self.agent.train_step_counter.assign(restart_step)
+            passed_time = self.log[restart_step][0]
+        else:
+            self.replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
+                data_spec=self.agent.collect_data_spec,
+                batch_size=self.train_env.batch_size,
+                max_length=self.replay_buffer_max_length)
+            self.agent.train_step_counter.assign(0)
+            passed_time = 0
+            
+        dataset = self.replay_buffer.as_dataset(
+            num_parallel_calls=self.parallell_calls,
             sample_batch_size=self.batch_size,
-            num_steps=2).prefetch(3)
+            num_steps=2).prefetch(self.parallell_calls)
         iterator = iter(dataset)
 
         self.agent.train = common.function(self.agent.train)
 
-        self.agent.train_step_counter.assign(0)
-
         avg_return = self.compute_avg_return()
-        returns = [avg_return]
         for _ in range(self.num_iterations):
-            #c_start = time.time()
+
             # Collect a few steps using collect_policy and save to the replay buffer.
-            self.collect_data(replay_buffer)
-            #c_stop = time.time()
-            #print('\nCollecting time: {}'.format(c_stop-c_start))
+            self.collect_data(self.replay_buffer)
 
-            # Sample a batch of data from the buffer and update the agent's network.
-            #e_start = time.time()
             experience, unused_info = next(iterator)
-            #e_stop = time.time()
-            #print('Sampling time: {}'.format(e_stop-e_start))
 
-            #t_start = time.time()
             train_loss = self.agent.train(experience).loss
-            #t_stop = time.time()
-            #print('Training time: {}'.format(t_stop-t_start))
 
             step = self.agent.train_step_counter.numpy()
 
-            if step % self.log_interval == 0:
-                print('step = {0}: loss = {1}'.format(step, train_loss))
-
-            if step % self.eval_interval == 0:
+            if step % self.eval_interval == 0 and step != restart_step:
                 self.save_model(step)
+                self.save_replay()
                 avg_return = self.compute_avg_return()
+                self.write_log(step)
                 print('step = {0}: Average Return = {1}'.format(step, avg_return))
-                returns.append(avg_return)
+
+            if step % self.log_interval == 0:
+                self.log_data(start_time,passed_time,step,train_loss,avg_return)
+                print('step = {0}: loss = {1}'.format(step, train_loss))
         
-        if plot:
-            iterations = range(0, self.num_iterations + 1, self.eval_interval)
-            plt.plot(iterations, returns)
-            plt.ylabel('Average Return')
-            plt.xlabel('Iterations')
-            plt.ylim(top=250)
 
     def demo(self, load_step = 0):
         """
@@ -199,7 +243,7 @@ class AtariDQN:
         time_step = self.eval_py_env.reset()
         score = 0.0
         if load_step:
-            self.load_model(self.save_name,load_step)
+            self.load_model(load_step)
         while not time_step.is_last():
             
             action_step = self.act(time_step)
@@ -210,10 +254,16 @@ class AtariDQN:
         self.eval_py_env.close()
         print('\nThe agent scored {:.2f}\n'.format(score[0]))
 
-def main():
-    dqn = AtariDQN('net.config','dqn_preset.config')
-    dqn.train()
+def main(step, net_conf='net.config', dqn_conf='dqn_preset.config'):
+    dqn = AtariDQN(net_conf,dqn_conf)
+    dqn.train(step)
     dqn.demo()
 
 if __name__ == "__main__":
-    main()
+    args = sys.argv[1:]
+    if len(args)==3:
+        main(args[0],args[1],args[2])
+    elif len(args)==1:
+        main(args[0])
+    else:
+        main(0)
