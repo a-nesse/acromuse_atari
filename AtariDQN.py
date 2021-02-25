@@ -136,9 +136,9 @@ class AtariDQN:
         Function for logging training performance.
         """
         cur_time = time.time()
-        time = starttime - cur_time + passed_time
+        train_time = starttime - cur_time + passed_time
         frames = step * self.batch_size
-        self.log[step] = [time,loss,score,frames]
+        self.log[step] = [train_time,loss,score,frames]
 
     def write_log(self,step):
         """
