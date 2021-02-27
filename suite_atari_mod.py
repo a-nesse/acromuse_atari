@@ -1,5 +1,5 @@
 # Modified by Andreas Nesse to use np.float32 for observations
-# rather than np.uint8.
+# rather than np.uint8 and setting stacking as default.
 #
 # coding=utf-8
 # Copyright 2020 The TF-Agents Authors.
@@ -77,7 +77,7 @@ def load(
     discount: types.Int = 1.0,
     max_episode_steps: Optional[types.Int] = None,
     gym_env_wrappers: Sequence[
-        types.GymEnvWrapper] = DEFAULT_ATARI_GYM_WRAPPERS,
+        types.GymEnvWrapper] = DEFAULT_ATARI_GYM_WRAPPERS_WITH_STACKING,
     env_wrappers: Sequence[types.PyEnvWrapper] = (),
     spec_dtype_map: Optional[Dict[gym.Space, np.dtype]] = None
 ) -> py_environment.PyEnvironment:

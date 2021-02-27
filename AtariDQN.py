@@ -41,7 +41,7 @@ class AtariDQN:
         self.dqn_conf = _load_config(dqn_conf_path)
 
         self.num_iterations = self.dqn_conf['num_iterations']
-        self.initial_collect_steps = self.dqn_conf['initial_collect_steps']
+        self.initial_collect_frames = self.dqn_conf['initial_collect_frames']
         self.collect_steps_per_iteration = self.dqn_conf['collect_steps_per_iteration']
         self.replay_buffer_max_length = self.dqn_conf['replay_buffer_max_length'] 
         self.parallell_calls = self.dqn_conf['parallell_calls'] 
@@ -61,10 +61,10 @@ class AtariDQN:
         self.step_spec = self.train_env.time_step_spec()
 
         self.q_net = q_network.QNetwork(self.obs_spec,self.action_spec,conv_layer_params=[tuple(c) for c in self.net_conf['conv_layer_params']],fc_layer_params=tuple(self.net_conf['fc_layer_params']),kernel_initializer=eval(self.net_conf['initializer']))
-        self.optimizer = eval(self.dqn_conf['optimizer'])(learning_rate=self.dqn_conf['learning_rate'])
+        self.optimizer = eval(self.dqn_conf['optimizer'])(learning_rate=self.dqn_conf['learning_rate'], decay=self.dqn_conf['discount'])
         self.train_step_counter = tf.Variable(0)
 
-        self.agent = dqn_agent.DqnAgent(self.step_spec,self.action_spec,q_network=self.q_net,optimizer=self.optimizer,td_errors_loss_fn=common.element_wise_squared_loss,train_step_counter=self.train_step_counter)
+        self.agent = dqn_agent.DqnAgent(self.step_spec,self.action_spec,q_network=self.q_net,optimizer=self.optimizer,td_errors_loss_fn=common.element_wise_squared_loss,train_step_counter=self.train_step_counter,epsilon_greedy=1.0)
         self.agent.initialize()
 
         self.save_name = self.dqn_conf['save_name']
@@ -93,23 +93,25 @@ class AtariDQN:
         avg_score = total_score / self.num_eval_episodes
         return avg_score
 
-    def collect_step(self, buffer):
+    def collect_step(self, buffer, policy=None):
         """
-        Function from https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial tutorial.
+        Modified function from https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial tutorial.
         """
+        if policy == None:
+            policy = self.agent.collect_policy
         time_step = self.train_env.current_time_step()
-        action_step = self.agent.policy.action(time_step)
+        action_step = policy.action(time_step)
         next_time_step = self.train_env.step(action_step)
         traj = trajectory.from_transition(time_step, action_step, next_time_step)
 
         # Add trajectory to the replay buffer
         buffer.add_batch(traj)
 
-    def collect_data(self, buffer):
+    def collect_data(self, buffer, steps):
         """
         Function from https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial tutorial.
         """
-        for _ in range(self.initial_collect_steps):
+        for _ in range(steps):
             self.collect_step(buffer)
 
     def save_model(self, step):
@@ -206,21 +208,47 @@ class AtariDQN:
             sample_batch_size=self.batch_size,
             num_steps=2).prefetch(self.parallell_calls)
         iterator = iter(dataset)
+        
+        print('\nInitial collecting data')
 
+        #initial data collection, 50000
+        initial_collect = int(self.initial_collect_frames / (4*self.batch_size))
+        self.collect_data(self.replay_buffer, initial_collect)
         self.agent.train = common.function(self.agent.train)
 
+        print('\nScoring')
+
+        #eval before training
         avg_score = self.compute_avg_score()
+
+        print('\nLoop')
+
         for _ in range(self.num_iterations):
+            
+            #print('\nCollecting data:')
+            #t = time.time()
+            # performing action according to epsilon-greedy protocol & collecting data
+            self.collect_data(self.replay_buffer, self.collect_steps_per_iteration)
+            #print(time.time()-t)
 
-            # Collect a few steps using collect_policy and save to the replay buffer.
-            self.collect_data(self.replay_buffer)
-
+            #print('\nSampling data:')
+            #t = time.time()
+            # sampling from data
             experience, unused_info = next(iterator)
+            #print(time.time()-t)
 
+            #print('\nTraining:')
+            #t = time.time()
+            #training
             train_loss = self.agent.train(experience).loss
-
             step = self.agent.train_step_counter.numpy()
-             
+            #print(time.time()-t)
+
+            frames = int(step*self.batch_size*4)
+            #changing epsilon linearly from frames 0 to 1 mill, down to 0.1
+            if frames < 1000000:
+                self.agent.collect_policy._epsilon = 1.0-(0.9*frames/1000000)
+
             if step % self.eval_interval == 0 and step != restart_step:
                 self.save_model(step)
                 self.save_replay()
@@ -229,9 +257,10 @@ class AtariDQN:
                 print('step = {}: Average Score = {}'.format(step, avg_score))
 
             if step % self.log_interval == 0:
+                print(time.time()-start_time)
                 self.log_data(start_time,passed_time,step,train_loss,avg_score)
                 print('step = {}: loss = {}'.format(step, train_loss))
-                
+
 
 def main(step, net_conf='net.config', dqn_conf='dqn_preset.config'):
     dqn = AtariDQN(net_conf,dqn_conf)
