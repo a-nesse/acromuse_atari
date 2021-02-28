@@ -61,14 +61,35 @@ class AtariDQN:
         self.action_spec = self.train_env.action_spec()
         self.step_spec = self.train_env.time_step_spec()
 
-        self.q_net = q_network.QNetwork(self.obs_spec,self.action_spec,conv_layer_params=[tuple(c) for c in self.net_conf['conv_layer_params']],fc_layer_params=tuple(self.net_conf['fc_layer_params']),kernel_initializer=eval(self.net_conf['initializer']))
-        self.optimizer = eval(self.dqn_conf['optimizer'])(learning_rate=self.dqn_conf['learning_rate'], momentum=self.dqn_conf['momentum'], decay=self.dqn_conf['discount'])
+        self.q_net = q_network.QNetwork(
+            self.obs_spec,
+            self.action_spec,
+            conv_layer_params=[tuple(c) for c in self.net_conf['conv_layer_params']],
+            fc_layer_params=tuple(self.net_conf['fc_layer_params']),
+            kernel_initializer=eval(self.net_conf['initializer'])
+        )
+        self.optimizer = eval(self.dqn_conf['optimizer'])(
+            learning_rate=self.dqn_conf['learning_rate'],
+            momentum=self.dqn_conf['momentum'], 
+            decay=self.dqn_conf['decay'],
+            epsilon=self.dqn_conf['mom_epsilon']
+        )
         self.train_step_counter = tf.Variable(0)
 
         self.replay_buffer_max_length = int(self.dqn_conf['replay_buffer_max_length']/(self.batch_size))
         self.initial_collect = self.replay_buffer_max_length
 
-        self.agent = dqn_agent.DqnAgent(self.step_spec,self.action_spec,q_network=self.q_net,optimizer=self.optimizer,td_errors_loss_fn=common.element_wise_squared_loss,train_step_counter=self.train_step_counter,epsilon_greedy=1.0,target_update_period=self.target_update)
+        self.agent = dqn_agent.DqnAgent(
+            self.step_spec,
+            self.action_spec,
+            q_network=self.q_net,
+            optimizer=self.optimizer,
+            td_errors_loss_fn=common.element_wise_squared_loss,
+            train_step_counter=self.train_step_counter,
+            epsilon_greedy=1.0,
+            target_update_period=self.target_update,
+            gamma=self.dqn_conf['discount']
+        )
         self.agent.initialize()
 
         self.save_name = self.dqn_conf['save_name']
@@ -77,7 +98,6 @@ class AtariDQN:
 
         self.elite_avg = (0,0) #elite model, score for average score
         self.elite_max = (0,0) #elite model, score for max score
-
 
     def act(self,obs):
         return self.agent.policy.action(obs)
@@ -101,7 +121,11 @@ class AtariDQN:
             total_score += episode_score
             if episode_score > max_score:
                 max_score = episode_score
+            
         avg_score = total_score / self.num_eval_episodes
+        print('\nAvg score, max score:')
+        print(avg_score)
+        print(max_score)
         return avg_score, max_score
 
     def collect_step(self, buffer, policy=None):
@@ -172,12 +196,12 @@ class AtariDQN:
 
         #if elite, replace and potentially delete old elite
         keep = step-(self.eval_interval*self.keep_n_models)
-        if avg_score > self.elite_avg[1]:
+        if avg_score > self.elite_avg[1] and step>=self.eval_interval:
             delete = self.elite_avg[0]
             self.elite_avg = (step,avg_score)
             if keep < step and delete!=0: #delete if not within keep interval
                 self.delete_model(delete)
-        if max_score > self.elite_max[1]:
+        if max_score > self.elite_max[1] and step>=self.eval_interval:
             delete = self.elite_max[0]
             self.elite_max = (step,max_score)
             if keep < step and delete!=0: #delete if not within keep interval

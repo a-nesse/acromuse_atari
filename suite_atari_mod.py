@@ -1,5 +1,6 @@
 # Modified by Andreas Nesse to use np.float32 for observations
-# rather than np.uint8 and setting stacking as default.
+# rather than np.uint8 and setting stacking as default and 
+# using fire on reset wrapper in case of certain environments.
 #
 # coding=utf-8
 # Copyright 2020 The TF-Agents Authors.
@@ -45,9 +46,12 @@ DEFAULT_ATARI_GYM_WRAPPERS = (atari_preprocessing.AtariPreprocessing,)
 # wrappers will be removed.
 DEFAULT_ATARI_GYM_WRAPPERS_WITH_STACKING = DEFAULT_ATARI_GYM_WRAPPERS + (
     atari_wrappers.FrameStack4,)
+DEFAULT_ATARI_GYM_WRAPPERS_WITH_STACKING_AND_FIREONRESET = DEFAULT_ATARI_GYM_WRAPPERS + (atari_wrappers.FireOnReset,) + (
+    atari_wrappers.FrameStack4,)
 gin.constant('DEFAULT_ATARI_GYM_WRAPPERS_WITH_STACKING',
              DEFAULT_ATARI_GYM_WRAPPERS_WITH_STACKING)
-
+gin.constant('DEFAULT_ATARI_GYM_WRAPPERS_WITH_STACKING_AND_FIREONRESET',
+             DEFAULT_ATARI_GYM_WRAPPERS_WITH_STACKING_AND_FIREONRESET)
 
 @gin.configurable
 def game(name: Text = 'Pong',
@@ -90,6 +94,9 @@ def load(
 
   if max_episode_steps is None and gym_spec.max_episode_steps is not None:
     max_episode_steps = gym_spec.max_episode_steps
+  
+  if environment_name[:8] == 'Breakout' or environment_name[:9] == 'BeamRider':
+    gym_env_wrappers = DEFAULT_ATARI_GYM_WRAPPERS_WITH_STACKING_AND_FIREONRESET
 
   return suite_gym.wrap_env(
       gym_env,
