@@ -1,6 +1,7 @@
 # Modified by Andreas Nesse to use np.float32 for observations
 # rather than np.uint8 and setting stacking as default and 
 # using fire on reset wrapper in case of certain environments.
+# Also modifies environment name to use correct version (Deterministic-v4).
 #
 # coding=utf-8
 # Copyright 2020 The TF-Agents Authors.
