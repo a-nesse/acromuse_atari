@@ -89,6 +89,12 @@ def load(
   if spec_dtype_map is None:
     spec_dtype_map = {gym.spaces.Box: np.float32}
 
+  environment_name = game(
+    name = environment_name,
+    mode = 'Deterministic',
+    version = 'v4'
+  )
+
   gym_spec = gym.spec(environment_name)
   gym_env = gym_spec.make()
 
