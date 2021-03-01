@@ -110,7 +110,7 @@ class AtariDQN:
         total_score = 0.0
         max_score = 0.0
         for _ in range(self.num_eval_episodes):
-            
+
             time_step = self.eval_env.reset()
             episode_score = 0.0
 
@@ -122,7 +122,7 @@ class AtariDQN:
             total_score += episode_score
             if episode_score > max_score:
                 max_score = episode_score
-            
+                
         avg_score = total_score / self.num_eval_episodes
         return avg_score, max_score
 
