@@ -1,5 +1,6 @@
-import numpy as np
 from copy import deepcopy
+import numpy as np
+
 
 class AtariGen:
     """
@@ -29,9 +30,9 @@ class AtariGen:
         return np.random.choice(self.n_agents, 2, replace=False, p=probs)
 
     def new_gen(self, agents, probs):
-        """
+        '''
         Function for creating new generation of agents.
-        """
+        '''
         new_agents = []
         # if keep_top >0
         if self.keep_elite:
