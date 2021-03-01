@@ -44,8 +44,8 @@ class AtariDQN:
         self.num_eval_episodes = self.dqn_conf['num_eval_episodes']
         self.eval_interval = self.dqn_conf['eval_interval']
 
-        self.train_py_env = suite_atari.load(environment_name=self.dqn_conf['env_name'])
-        self.eval_py_env = suite_atari.load(environment_name=self.dqn_conf['env_name'])
+        self.train_py_env = suite_atari.load(environment_name=self.dqn_conf['env_name'], eval_env=False)
+        self.eval_py_env = suite_atari.load(environment_name=self.dqn_conf['env_name'], eval_env=True)
         self.train_env = tf_py_environment.TFPyEnvironment(self.train_py_env)
         self.eval_env = tf_py_environment.TFPyEnvironment(self.eval_py_env)
 
@@ -254,13 +254,11 @@ class AtariDQN:
             policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
         else:
             policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
-            '''
             for _ in range(self.initial_collect):
                 time_step, policy_state = self.driver.run(
                     time_step=time_step,
                     policy_state=policy_state
                 )
-            '''
             self.agent.train_step_counter.assign(0)
             passed_time = 0
 

@@ -38,19 +38,21 @@ from tf_agents.environments import suite_gym
 from tf_agents.typing import types
 
 #from tf_agents.environments import atari_preprocessing
-import atari_preprocessing_mod as atari_preprocessing
+import atari_preprocessing_train
+import atari_preprocessing_eval
 
-# Typical Atari 2600 Gym environment with some basic preprocessing.
-DEFAULT_ATARI_GYM_WRAPPERS = (atari_preprocessing.AtariPreprocessing,)
 # The following is just AtariPreprocessing with frame stacking. Performance wise
 # it's much better to have stacking implemented as part of replay-buffer/agent.
 # As soon as this functionality in TF-Agents is ready and verified, this set of
 # wrappers will be removed.
-DEFAULT_ATARI_GYM_WRAPPERS_WITH_STACKING = DEFAULT_ATARI_GYM_WRAPPERS + \
+TRAIN_ATARI_GYM_WRAPPERS_WITH_STACKING = (atari_preprocessing_train.AtariPreprocessing,) + \
     (atari_wrappers.FrameStack4,)
-gin.constant('DEFAULT_ATARI_GYM_WRAPPERS_WITH_STACKING',
-             DEFAULT_ATARI_GYM_WRAPPERS_WITH_STACKING)
-
+EVAL_ATARI_GYM_WRAPPERS_WITH_STACKING = (atari_preprocessing_eval.AtariPreprocessing,) + \
+    (atari_wrappers.FrameStack4,)
+gin.constant('TRAIN_ATARI_GYM_WRAPPERS_WITH_STACKING',
+             TRAIN_ATARI_GYM_WRAPPERS_WITH_STACKING)
+gin.constant('EVAL_ATARI_GYM_WRAPPERS_WITH_STACKING',
+             EVAL_ATARI_GYM_WRAPPERS_WITH_STACKING)
 
 @gin.configurable
 def game(name: Text = 'Pong', obs_type: Text = 'image', mode: Text = 'NoFrameskip', version: Text = 'v0') -> Text:
@@ -77,13 +79,17 @@ def load(
         discount: types.Int = 1.0,
         max_episode_steps: Optional[types.Int] = None,
         gym_env_wrappers: Sequence[
-            types.GymEnvWrapper] = DEFAULT_ATARI_GYM_WRAPPERS_WITH_STACKING,
+            types.GymEnvWrapper] = TRAIN_ATARI_GYM_WRAPPERS_WITH_STACKING,
         env_wrappers: Sequence[types.PyEnvWrapper] = (),
-        spec_dtype_map: Optional[Dict[gym.Space, np.dtype]] = None
+        spec_dtype_map: Optional[Dict[gym.Space, np.dtype]] = None,
+        eval_env: bool = False
 ) -> py_environment.PyEnvironment:
     """Loads the selected environment and wraps it with the specified wrappers."""
     if spec_dtype_map is None:
         spec_dtype_map = {gym.spaces.Box: np.float32}
+
+    if eval_env:
+        gym_env_wrappers = EVAL_ATARI_GYM_WRAPPERS_WITH_STACKING
 
     environment_name = game(
         name=environment_name,
