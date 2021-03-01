@@ -1,27 +1,22 @@
-import numpy as np
-import gym
 import time
 import json
 import os
-#import base64
 import pickle
-import time
 import sys
-import shutil
+import numpy as np
 
 import tensorflow as tf
 
 from tf_agents.agents.dqn import dqn_agent
-#from tf_agents.environments import suite_atari
 from tf_agents.drivers import dynamic_step_driver
-import suite_atari_mod as suite_atari 
 from tf_agents.environments import tf_py_environment
 from tf_agents.networks import q_network
-from tf_agents.eval import metric_utils
-from tf_agents.metrics import tf_metrics
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
-from tf_agents.trajectories import trajectory
 from tf_agents.utils import common
+from tf_agents.policies import epsilon_greedy_policy
+
+#from tf_agents.environments import suite_atari
+import suite_atari_mod as suite_atari
 
 class AtariDQN:
     """
@@ -31,10 +26,7 @@ class AtariDQN:
     def __init__(self, net_conf_path='',dqn_conf_path=''):
         
         def _load_config(conf_path):
-            try:
-                assert os.path.exists(conf_path)
-            except:
-                print('The config file specified does not exist.')
+            assert os.path.exists(conf_path),'The config file specified does not exist.'
             with open(conf_path, 'r') as f:
                 conf = json.load(f)
             return conf
@@ -66,14 +58,14 @@ class AtariDQN:
             self.action_spec,
             conv_layer_params=[tuple(c) for c in self.net_conf['conv_layer_params']],
             fc_layer_params=tuple(self.net_conf['fc_layer_params']),
-            kernel_initializer=eval(self.net_conf['initializer'])
-        )
-        self.optimizer = eval(self.dqn_conf['optimizer'])(
+            kernel_initializer=tf.keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='untruncated_normal'))
+
+        self.optimizer = tf.compat.v1.train.RMSPropOptimizer(
             learning_rate=self.dqn_conf['learning_rate'],
-            momentum=self.dqn_conf['momentum'], 
+            momentum=self.dqn_conf['momentum'],
             decay=self.dqn_conf['decay'],
-            epsilon=self.dqn_conf['mom_epsilon']
-        )
+            epsilon=self.dqn_conf['mom_epsilon'])
+
         self.train_step_counter = tf.Variable(0)
 
         self.replay_buffer_max_length = int(self.dqn_conf['replay_buffer_max_length']/(self.batch_size))
@@ -88,8 +80,7 @@ class AtariDQN:
             train_step_counter=self.train_step_counter,
             epsilon_greedy=1.0,
             target_update_period=self.target_update,
-            gamma=self.dqn_conf['discount']
-        )
+            gamma=self.dqn_conf['discount'])
         self.agent.initialize()
 
         self.save_name = self.dqn_conf['save_name']
@@ -99,8 +90,18 @@ class AtariDQN:
         self.elite_avg = (0,0) #elite model, score for average score
         self.elite_max = (0,0) #elite model, score for max score
 
+        # epsilon-greedy eval policy as described by Mnih et.al (2013)
+        self.eval_policy = epsilon_greedy_policy.EpsilonGreedyPolicy(
+            policy=self.agent.policy,
+            epsilon=self.dqn_conf['eval_epsilon'])
+
     def act(self,obs):
-        return self.agent.policy.action(obs)
+        '''
+        Method for predicting action.
+        Uses epsilon-greedy policy to avoid evaluation overfitting.
+        '''
+        return self.eval_policy.action(obs)
+
 
     def compute_avg_score(self):
         """
@@ -123,32 +124,8 @@ class AtariDQN:
                 max_score = episode_score
             
         avg_score = total_score / self.num_eval_episodes
-        print('\nAvg score, max score:')
-        print(avg_score)
-        print(max_score)
         return avg_score, max_score
 
-    def collect_step(self, buffer, policy=None):
-        """
-        Modified function from https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial tutorial.
-        Dynamic driver?
-        """
-        if policy == None:
-            policy = self.agent.collect_policy
-        time_step = self.train_env.current_time_step()
-        action_step = policy.action(time_step)
-        next_time_step = self.train_env.step(action_step)
-        traj = trajectory.from_transition(time_step, action_step, next_time_step)
-
-        # Add trajectory to the replay buffer
-        buffer.add_batch(traj)
-
-    def collect_data(self, buffer, steps):
-        """
-        Function from https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial tutorial.
-        """
-        for _ in range(steps):
-            self.collect_step(buffer)
 
     def save_model(self, step):
         """
@@ -166,6 +143,7 @@ class AtariDQN:
         if delete > 0 and self.elite_avg[0]!=delete and self.elite_max[0]!=delete:
             self.delete_model(delete)
 
+
     def load_model(self, step):
         """
         Method for loading q & target network.
@@ -179,6 +157,7 @@ class AtariDQN:
         self.q_net.set_weights(new_weights)
         self.agent._target_q_network.set_weights(new_target)
 
+
     def delete_model(self,step):
         """
         Function for deleting magent.
@@ -186,76 +165,59 @@ class AtariDQN:
         os.remove(os.path.join(os.getcwd(), 'saved_models', self.save_name + '-' + str(step) + '-eval'))
         os.remove(os.path.join(os.getcwd(), 'saved_models', self.save_name + '-' + str(step) + '-target'))
 
+
     def log_data(self, starttime, passed_time, step, loss, avg_score, max_score):
         """
         Function for logging training performance.
         """
         cur_time = time.time()
-        train_time = starttime - cur_time + passed_time
+        train_time = cur_time - starttime + passed_time
+        step = int(step)
+        loss = float(loss)
         frames = step * self.batch_size * 4
 
         #if elite, replace and potentially delete old elite
-        keep = step-(self.eval_interval*self.keep_n_models)
+        keep = step-(self.eval_interval*(self.keep_n_models-1))
         if avg_score > self.elite_avg[1] and step>=self.eval_interval:
             delete = self.elite_avg[0]
             self.elite_avg = (step,avg_score)
-            if keep < step and delete!=0: #delete if not within keep interval
+            if delete < keep and delete!=0: #delete if not within keep interval
                 self.delete_model(delete)
         if max_score > self.elite_max[1] and step>=self.eval_interval:
             delete = self.elite_max[0]
             self.elite_max = (step,max_score)
-            if keep < step and delete!=0: #delete if not within keep interval
+            if delete < keep and delete!=0: #delete if not within keep interval
                 self.delete_model(delete)
-
+                
         self.log[step] = [train_time,loss,avg_score,max_score,frames,self.elite_avg,self.elite_max]
 
-    def write_log(self,step):
+
+    def write_log(self):
         """
         Function for writing log.
         """
-        filepath = os.path.join(os.getcwd(), 'logs', self.save_name + '-' + str(step))
-        with open(filepath, 'wb') as f:
-            pickle.dump(self.log, f)
+        filepath = os.path.join(os.getcwd(), 'saved_models', self.save_name + 'log')
+        with open(filepath, 'w') as f:
+            json.dump(self.log, f)
     
-    def load_log(self,step):
+
+    def load_log(self):
         """
         Function for loading log.
         """
-        filepath = os.path.join(os.getcwd(), 'logs', self.save_name + '-' + str(step))
-        with open(filepath, 'rb') as f:
-            log = pickle.load(f)
+        filepath = os.path.join(os.getcwd(), 'saved_models', self.save_name + 'log')
+        with open(filepath, 'r') as f:
+            log = json.load(f)
         self.log = log
 
-    def save_replay(self):
-        """
-        Function for saving replay buffer.
-        """
-        """
-        filepath = os.path.join(os.getcwd(), 'saved_models', self.save_name + '-experience')
-        with open(filepath, 'wb') as f:
-            pickle.dump(self.replay_buffer, f)
-        """
-        pass
-
-
-    def load_replay(self):
-        """
-        Function for loading replay.
-        """
-        """
-        filepath = os.path.join(os.getcwd(), 'saved_models', self.save_name + '-experience')
-        with open(filepath, 'rb') as f:
-            replay = pickle.load(f)
-        self.replay_buffer = replay
-        """
-        pass
 
     def restart_training(self, step):
         """
         Function for restarting training from step.
         """
         self.load_model(step)
-        self.load_log(step)
+        self.load_log()
+
 
     def train(self, restart_step=0):
         """
@@ -265,7 +227,7 @@ class AtariDQN:
         time_step = self.train_env.reset()
 
         start_time = time.time()
-        
+
         self.replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
             data_spec=self.agent.collect_data_spec,
             batch_size=self.train_env.batch_size,
@@ -274,32 +236,34 @@ class AtariDQN:
         self.replay_ckp = common.Checkpointer(
             ckpt_dir=os.path.join(os.getcwd(), 'saved_models', self.save_name + 'replay'),
             max_to_keep=1,
-            replay_buffer = self.replay_buffer
-        )
+            replay_buffer = self.replay_buffer)
 
         #initializing dynamic step driver
         self.driver = dynamic_step_driver.DynamicStepDriver(
             self.train_env,
             self.agent.collect_policy,
             observers=[self.replay_buffer.add_batch],
-            num_steps=self.collect_steps_per_iteration
-        )
+            num_steps=self.collect_steps_per_iteration)
+
         self.driver.run = common.function(self.driver.run)
 
         if restart_step:
             self.restart_training(restart_step)
             self.agent.train_step_counter.assign(restart_step)
-            passed_time = self.log[restart_step][0]
+            passed_time = self.log[str(restart_step)][0]
+            policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
         else:
             policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
+            '''
             for _ in range(self.initial_collect):
                 time_step, policy_state = self.driver.run(
                     time_step=time_step,
                     policy_state=policy_state
                 )
+            '''
             self.agent.train_step_counter.assign(0)
             passed_time = 0
-        
+
         self.replay_ckp.initialize_or_restore()
 
         dataset = self.replay_buffer.as_dataset(
@@ -341,31 +305,31 @@ class AtariDQN:
                 self.save_model(step)
                 self.replay_ckp.save(global_step=step)
                 avg_score, max_score = self.compute_avg_score()
-                self.write_log(step)
                 print('step = {}: Average Score = {} Max Score = {}'.format(step, avg_score, max_score))
 
             if step % self.log_interval == 0:
                 print(time.time()-start_time)
                 self.log_data(start_time,passed_time,step,train_loss,avg_score,max_score)
+                if step % self.eval_interval == 0:
+                    self.write_log()
                 print('step = {}: loss = {}'.format(step, train_loss))
 
-def delete_archive():
-    shutil.rmtree(os.path.join(os.getcwd(), 'saved_models'))
-    shutil.rmtree(os.path.join(os.getcwd(), 'logs'))
-    os.makedirs(os.path.join(os.getcwd(), 'saved_models'))
-    os.makedirs(os.path.join(os.getcwd(), 'logs'))
 
-def main(step, net_conf='net.config', dqn_conf='dqn_preset.config'):
+def main(step, net_conf='net_large.config', dqn_conf='dqn_preset.config'):
+    '''
+    Creates AtariDQN object and runs training according to configs.
+    '''
     dqn = AtariDQN(net_conf,dqn_conf)
-    if step == 0:
-        delete_archive()
+    if not os.path.isdir(os.path.join(os.getcwd(),'saved_models')):
+        os.makedirs(os.path.join(os.getcwd(),'saved_models'))
     dqn.train(step)
+
 
 if __name__ == "__main__":
     args = sys.argv[1:]
     if len(args)==3:
         main(args[0],args[1],args[2])
     elif len(args)==1:
-        main(args[0])
+        main(int(args[0]))
     else:
         main(0)
