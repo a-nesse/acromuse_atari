@@ -10,7 +10,7 @@ import sys
 import tensorflow as tf
 
 from AtariNet import AtariNet
-import suite_atari_eval as suite_atari 
+import suite_atari_mod as suite_atari 
 from tf_agents.environments import tf_py_environment
 
 class AtariDemo:
@@ -30,7 +30,7 @@ class AtariDemo:
 
         self.net_conf = _load_config(conf_path)
 
-        self.py_env = suite_atari.load(environment_name=env_name)
+        self.py_env = suite_atari.load(environment_name=env_name, eval_env=True)
         self.env = tf_py_environment.TFPyEnvironment(self.py_env)
  
         obs_shape = tuple(self.env.observation_spec().shape)
