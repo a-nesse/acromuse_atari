@@ -32,7 +32,7 @@ class AtariNet(tf.keras.Sequential):
 
     def predict(self,observation, epsilon=0):
         activations = super().predict(observation.observation)
-        if epsilon:
+        if epsilon and epsilon<np.random.rand():
             return np.random.randint(self.action_shape)
         return np.argmax(activations)
 
