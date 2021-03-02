@@ -14,3 +14,4 @@ testEvolution.py
 saved_models/*
 logs/*
 .pylintrc
+elite_models/*
