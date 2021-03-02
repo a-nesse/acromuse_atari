@@ -34,13 +34,14 @@ class AtariDemo:
         self.env = tf_py_environment.TFPyEnvironment(self.py_env)
  
         obs_shape = tuple(self.env.observation_spec().shape)
+        print(self.env.action_spec())
         action_shape = self.env.action_spec().maximum - self.env.action_spec().minimum + 1
 
         self.agent = AtariNet(obs_shape, action_shape, self.net_conf)
 
     def import_weights(self,agent_path):
-        with open(agent_path, 'r') as f:
-            weights = json.load(f)
+        with open(agent_path, 'rb') as f:
+            weights = pickle.load(f)
         self.agent.set_weights(weights)
 
     def run(self):
@@ -51,11 +52,11 @@ class AtariDemo:
             time_step = self.env.step(action_step)
             score += time_step.reward
             self.env.render(mode='human')
-            time.sleep(0.05)
+            time.sleep(0.02)
         self.env.close()
         print('\nThe agent scored {:.2f}\n'.format(score[0]))
 
-def main(agent_path,env_name,conf_path='net_config'):
+def main(agent_path,env_name,conf_path='net_large.config'):
     """
     Run demo of loaded agent.
     """

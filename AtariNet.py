@@ -18,6 +18,8 @@ class AtariNet(tf.keras.Sequential):
 
         initializer = tf.keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='untruncated_normal')
         
+        self.action_shape = action_shape
+
         self.add(tf.keras.Input(shape=input_shape))
         for c in net_conf['conv_layer_params']:
             self.add(tf.keras.layers.Conv2D(c[0],c[1],c[2],activation=net_conf['conv_activation'], kernel_initializer=initializer))
@@ -28,6 +30,9 @@ class AtariNet(tf.keras.Sequential):
         self.build()
 
 
-    def predict(self,observation):
+    def predict(self,observation, epsilon=0.05):
         activations = super().predict(observation.observation)
+        if epsilon:
+            return np.random.randint(self.action_shape)
         return np.argmax(activations)
+
