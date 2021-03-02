@@ -69,6 +69,6 @@ if __name__ == "__main__":
     if len(args)==4:
         main(args[1],args[0],args[2],args[3])
     elif len(args)==3:
-    	main(args[1],args[0],args[2])
+    	main(args[1],args[0],float(args[2]))
     else:
         main(args[1],args[0])
