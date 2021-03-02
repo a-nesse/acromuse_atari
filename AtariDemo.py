@@ -44,11 +44,11 @@ class AtariDemo:
             weights = pickle.load(f)
         self.agent.set_weights(weights)
 
-    def run(self):
+    def run(self,epsilon):
         time_step = self.env.reset()
         score = 0.0
         while not time_step.is_last():
-            action_step = self.agent.predict(time_step)
+            action_step = self.agent.predict(time_step,epsilon)
             time_step = self.env.step(action_step)
             score += time_step.reward
             self.env.render(mode='human')
@@ -56,17 +56,19 @@ class AtariDemo:
         self.env.close()
         print('\nThe agent scored {:.2f}\n'.format(score[0]))
 
-def main(agent_path,env_name,conf_path='net_large.config'):
+def main(agent_path,env_name,epsilon=0,conf_path='net_large.config'):
     """
     Run demo of loaded agent.
     """
     demo = AtariDemo(env_name,conf_path)
     demo.import_weights(agent_path)
-    demo.run()
+    demo.run(epsilon)
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    if len(args)==3:
-        main(args[1],args[0],args[2])
+    if len(args)==4:
+        main(args[1],args[0],args[2],args[3])
+    elif len(args)==3:
+    	main(args[1],args[0],args[2])
     else:
         main(args[1],args[0])

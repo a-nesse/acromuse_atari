@@ -30,7 +30,7 @@ class AtariNet(tf.keras.Sequential):
         self.build()
 
 
-    def predict(self,observation, epsilon=0.05):
+    def predict(self,observation, epsilon=0):
         activations = super().predict(observation.observation)
         if epsilon:
             return np.random.randint(self.action_shape)
