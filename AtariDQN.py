@@ -154,6 +154,9 @@ class AtariDQN:
         filepath_target = os.path.join(os.getcwd(), 'saved_models', self.save_name + '-' + str(step) + '-target')
         with open(filepath_target, 'rb') as f:
             new_target = pickle.load(f)
+        frames = int(step*self.batch_size*4)
+        if frames < 1000000:
+            self.agent.collect_policy._epsilon = 1.0-(0.9*frames/1000000)
         self.q_net.set_weights(new_weights)
         self.agent._target_q_network.set_weights(new_target)
 
@@ -253,6 +256,8 @@ class AtariDQN:
             passed_time = self.log[str(restart_step)][0]
             policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
         else:
+            #setting epsilon to 1.0 for initial collection (random policy)
+            self.agent.collect_policy._epsilon = 1.0
             policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
             for _ in range(self.initial_collect):
                 time_step, policy_state = self.driver.run(
@@ -276,9 +281,6 @@ class AtariDQN:
         avg_score, max_score = self.compute_avg_score()
 
         for _ in range(self.num_iterations):
-
-            #setting epsilon to 1.0 for initial collection (random policy)
-            self.agent.collect_policy._epsilon = 1.0
 
             # performing action according to epsilon-greedy protocol & collecting data
             time_step, policy_state = self.driver.run(
