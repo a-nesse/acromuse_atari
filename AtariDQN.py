@@ -76,6 +76,7 @@ class AtariDQN:
             self.action_spec,
             q_network=self.q_net,
             optimizer=self.optimizer,
+            emit_log_probability=True,
             td_errors_loss_fn=common.element_wise_squared_loss,
             train_step_counter=self.train_step_counter,
             epsilon_greedy=1.0,
@@ -109,22 +110,27 @@ class AtariDQN:
         """
         total_score = 0.0
         max_score = 0.0
+        steps = 0
+        avg_q_value = 0.0
         for _ in range(self.num_eval_episodes):
 
             time_step = self.eval_env.reset()
             episode_score = 0.0
-
+            
             while not time_step.is_last():
                 action_step = self.act(time_step)
+                avg_q_value += action_step.info.log_probability.numpy()[0]
                 time_step = self.eval_env.step(action_step.action)
                 episode_score += time_step.reward.numpy()[0]
-
+                steps += 1
+ 
             total_score += episode_score
             if episode_score > max_score:
                 max_score = episode_score
                 
         avg_score = total_score / self.num_eval_episodes
-        return avg_score, max_score
+        avg_q_value = avg_q_value / steps
+        return avg_score, max_score, avg_q_value
 
 
     def save_model(self, step):
@@ -169,7 +175,7 @@ class AtariDQN:
         os.remove(os.path.join(os.getcwd(), 'saved_models', self.save_name + '-' + str(step) + '-target'))
 
 
-    def log_data(self, starttime, passed_time, step, loss, avg_score, max_score):
+    def log_data(self, starttime, passed_time, step, loss, avg_score, max_score, avg_q_value):
         """
         Function for logging training performance.
         """
@@ -179,20 +185,21 @@ class AtariDQN:
         loss = float(loss)
         frames = step * self.batch_size * 4
 
-        #if elite, replace and potentially delete old elite
-        keep = step-(self.eval_interval*(self.keep_n_models-1))
-        if avg_score > self.elite_avg[1] and step>=self.eval_interval:
-            delete = self.elite_avg[0]
-            self.elite_avg = (step,avg_score)
-            if delete < keep and delete!=0: #delete if not within keep interval
-                self.delete_model(delete)
-        if max_score > self.elite_max[1] and step>=self.eval_interval:
-            delete = self.elite_max[0]
-            self.elite_max = (step,max_score)
-            if delete < keep and delete!=0: #delete if not within keep interval
-                self.delete_model(delete)
+        if step%self.eval_interval==0:
+            #if elite, replace and potentially delete old elite
+            keep = step-(self.eval_interval*(self.keep_n_models-1))
+            if avg_score > self.elite_avg[1] and step>=self.eval_interval:
+                delete = self.elite_avg[0]
+                self.elite_avg = (step,avg_score)
+                if delete < keep and delete!=0 and delete != self.elite_max[0]: #delete if not within keep interval
+                    self.delete_model(delete)
+            if max_score > self.elite_max[1] and step>=self.eval_interval:
+                delete = self.elite_max[0]
+                self.elite_max = (step,max_score)
+                if delete < keep and delete!=0 and delete != self.elite_avg[0]: #delete if not within keep interval
+                    self.delete_model(delete)
                 
-        self.log[step] = [train_time,loss,avg_score,max_score,frames,self.elite_avg,self.elite_max]
+        self.log[step] = [train_time,loss,avg_score,max_score,avg_q_value,frames,self.elite_avg,self.elite_max]
 
 
     def write_log(self):
@@ -278,7 +285,7 @@ class AtariDQN:
         self.agent.train = common.function(self.agent.train)
 
         #eval before training
-        avg_score, max_score = self.compute_avg_score()
+        avg_score, max_score, avg_q = self.compute_avg_score()
 
         for _ in range(self.num_iterations):
 
@@ -304,12 +311,12 @@ class AtariDQN:
             if step % self.eval_interval == 0 and step != restart_step:
                 self.save_model(step)
                 self.replay_ckp.save(global_step=step)
-                avg_score, max_score = self.compute_avg_score()
+                avg_score, max_score, avg_q = self.compute_avg_score()
                 print('step = {}: Average Score = {} Max Score = {}'.format(step, avg_score, max_score))
 
             if step % self.log_interval == 0:
                 print(time.time()-start_time)
-                self.log_data(start_time,passed_time,step,train_loss,avg_score,max_score)
+                self.log_data(start_time,passed_time,step,train_loss,avg_score,max_score,avg_q)
                 if step % self.eval_interval == 0:
                     self.write_log()
                 print('step = {}: loss = {}'.format(step, train_loss))
