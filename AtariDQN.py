@@ -211,7 +211,7 @@ class AtariDQN:
             json.dump(self.log, f)
     
 
-    def load_log(self):
+    def load_log(self,step):
         """
         Function for loading log.
         """
@@ -219,6 +219,8 @@ class AtariDQN:
         with open(filepath, 'r') as f:
             log = json.load(f)
         self.log = log
+        self.elite_avg = (log[str(step)][6][0],log[str(step)][6][1])
+        self.elite_max = (log[str(step)][7][0],log[str(step)][7][1])
 
 
     def restart_training(self, step):
@@ -226,7 +228,8 @@ class AtariDQN:
         Function for restarting training from step.
         """
         self.load_model(step)
-        self.load_log()
+        self.agent.collect_policy._epsilon = 1.0-(0.9*int(step*self.batch_size*4)/1000000)
+        self.load_log(step)
 
 
     def train(self, restart_step=0):
@@ -285,7 +288,12 @@ class AtariDQN:
         self.agent.train = common.function(self.agent.train)
 
         #eval before training
-        avg_score, max_score, avg_q = self.compute_avg_score()
+        if restart_step:
+        	avg_score = self.log[str(restart_step)][2]
+        	max_score = self.log[str(restart_step)][3]
+        	avg_q = self.log[str(restart_step)][4]
+        else:
+        	avg_score, max_score, avg_q = self.compute_avg_score()
 
         for _ in range(self.num_iterations):
 
@@ -304,7 +312,7 @@ class AtariDQN:
 
             frames = int(step*self.batch_size*4)
             #changing epsilon linearly from frames 0 to 1 mill, down to 0.1
-            if frames < 1000000:
+            if frames <= 1000000:
                 self.agent.collect_policy._epsilon = 1.0-(0.9*frames/1000000)
                 policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
 
