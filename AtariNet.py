@@ -16,7 +16,7 @@ class AtariNet(tf.keras.Sequential):
 
         super().__init__()
 
-        initializer = tf.keras.initializers.VarianceScaling(scale=2.0, mode='fan_in', distribution='truncated_normal')
+        initializer = tf.keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='untruncated_normal')
         
         self.action_shape = action_shape
 
