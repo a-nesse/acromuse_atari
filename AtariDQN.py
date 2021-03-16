@@ -8,10 +8,10 @@ import numpy as np
 import tensorflow as tf
 
 from tf_agents.agents.dqn import dqn_agent
-from tf_agents.drivers import dynamic_step_driver
 from tf_agents.environments import tf_py_environment
 from tf_agents.networks import q_network
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
+from tf_agents.drivers import dynamic_step_driver
 from tf_agents.utils import common
 from tf_agents.policies import epsilon_greedy_policy
 
@@ -58,7 +58,7 @@ class AtariDQN:
             self.action_spec,
             conv_layer_params=[tuple(c) for c in self.net_conf['conv_layer_params']],
             fc_layer_params=tuple(self.net_conf['fc_layer_params']),
-            kernel_initializer=tf.keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='untruncated_normal'))
+            kernel_initializer=tf.keras.initializers.VarianceScaling(scale=2.0, mode='fan_in', distribution='truncated_normal'))
 
         self.optimizer = tf.compat.v1.train.RMSPropOptimizer(
             learning_rate=self.dqn_conf['learning_rate'],
@@ -68,8 +68,13 @@ class AtariDQN:
 
         self.train_step_counter = tf.Variable(0)
 
-        self.replay_buffer_max_length = int(self.dqn_conf['replay_buffer_max_length']/(self.batch_size))
-        self.initial_collect = self.replay_buffer_max_length
+        #Replay buffer size & initial collect -3 due to stacking 4 frames
+        self.replay_buffer_max_length = self.dqn_conf['replay_buffer_max_length']-3
+        self.initial_collect = self.dqn_conf['initial_collect_frames']-3 
+
+        self.initial_epsilon = self.dqn_conf['initial_epsilon']
+        self.final_epsilon = self.dqn_conf['final_epsilon']
+        self.final_exploration = self.dqn_conf['final_exploration']
 
         self.agent = dqn_agent.DqnAgent(
             self.step_spec,
@@ -91,7 +96,7 @@ class AtariDQN:
         self.elite_avg = (0,0) #elite model, score for average score
         self.elite_max = (0,0) #elite model, score for max score
 
-        # epsilon-greedy eval policy as described by Mnih et.al (2013)
+        # epsilon-greedy eval policy as described by Mnih et.al (2015)
         self.eval_policy = epsilon_greedy_policy.EpsilonGreedyPolicy(
             policy=self.agent.policy,
             epsilon=self.dqn_conf['eval_epsilon'])
@@ -161,15 +166,15 @@ class AtariDQN:
         with open(filepath_target, 'rb') as f:
             new_target = pickle.load(f)
         frames = int(step*self.batch_size*4)
-        if frames < 1000000:
-            self.agent.collect_policy._epsilon = 1.0-(0.9*frames/1000000)
+        scaled_epsilon = self.initial_epsilon-(0.9*frames/self.final_exploration)
+        self.agent.collect_policy._epsilon = max(self.final_epsilon,scaled_epsilon)
         self.q_net.set_weights(new_weights)
         self.agent._target_q_network.set_weights(new_target)
 
 
     def delete_model(self,step):
         """
-        Function for deleting magent.
+        Function for deleting agent.
         """
         os.remove(os.path.join(os.getcwd(), 'saved_models', self.save_name + '-' + str(step) + '-eval'))
         os.remove(os.path.join(os.getcwd(), 'saved_models', self.save_name + '-' + str(step) + '-target'))
@@ -228,9 +233,8 @@ class AtariDQN:
         Function for restarting training from step.
         """
         self.load_model(step)
-        self.agent.collect_policy._epsilon = 1.0-(0.9*int(step*self.batch_size*4)/1000000)
         self.load_log(step)
-
+        
 
     def train(self, restart_step=0):
         """
@@ -267,13 +271,12 @@ class AtariDQN:
             policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
         else:
             #setting epsilon to 1.0 for initial collection (random policy)
-            self.agent.collect_policy._epsilon = 1.0
+            self.agent.collect_policy._epsilon = self.initial_epsilon
             policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
             for _ in range(self.initial_collect):
                 time_step, policy_state = self.driver.run(
                     time_step=time_step,
-                    policy_state=policy_state
-                )
+                    policy_state=policy_state)
             self.agent.train_step_counter.assign(0)
             passed_time = 0
 
@@ -295,16 +298,22 @@ class AtariDQN:
         else:
         	avg_score, max_score, avg_q = self.compute_avg_score()
 
-        for _ in range(self.num_iterations):
+        exploration_finished = False
+
+        for i in range(self.num_iterations):
 
             # performing action according to epsilon-greedy protocol & collecting data
             time_step, policy_state = self.driver.run(
                 time_step=time_step,
-                policy_state=policy_state
-            )
+                policy_state=policy_state)
 
             # sampling from data
             experience, unused_info = next(iterator)
+
+            if i == 0:
+                with open('replay_exp','wb') as f:
+                    pickle.dump(experience,f)
+                print('\n\nOK\n')
 
             #training
             train_loss = self.agent.train(experience).loss
@@ -312,9 +321,14 @@ class AtariDQN:
 
             frames = int(step*self.batch_size*4)
             #changing epsilon linearly from frames 0 to 1 mill, down to 0.1
-            if frames <= 1000000:
-                self.agent.collect_policy._epsilon = 1.0-(0.9*frames/1000000)
-                policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
+            if frames <= self.final_exploration:
+                scaled_epsilon = self.initial_epsilon-(0.9*frames/self.final_exploration)
+                self.agent.collect_policy._epsilon = max(self.final_epsilon,scaled_epsilon)
+                #policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
+            elif not exploration_finished:
+                self.agent.collect_policy._epsilon = self.final_epsilon
+                exploration_finished = True
+                #policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
 
             if step % self.eval_interval == 0 and step != restart_step:
                 self.save_model(step)
@@ -328,6 +342,7 @@ class AtariDQN:
                 if step % self.eval_interval == 0:
                     self.write_log()
                 print('step = {}: loss = {}'.format(step, train_loss))
+
 
 
 def main(step, net_conf='net_large.config', dqn_conf='dqn_preset.config'):

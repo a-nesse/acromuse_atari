@@ -1,9 +1,8 @@
 # Modified by Andreas Nesse
-# Modified for training.
+# Modified for training/evaluating evolved agents.
 # Includes no-op frames after environment reset
 # & initial 'fire' action for certain environments requiring this.
-# Rewards normalized to -1, 0 and 1.
-# Is terminal on life loss, to help agent learn to avoid losing lives.
+# Rewards not normalized.
 #
 # coding=utf-8
 # Copyright 2020 The TF-Agents Authors.
@@ -59,7 +58,7 @@ class AtariPreprocessing(gym_core.Wrapper):
 		self,
 		env: gym.Env,
 		frame_skip: int = 4,
-		terminal_on_life_loss: bool = True,
+		terminal_on_life_loss: bool = False,
 		screen_size: int = 84):
 		"""Constructor for an Atari 2600 preprocessor.
 		Args:
@@ -145,8 +144,6 @@ class AtariPreprocessing(gym_core.Wrapper):
 			# We bypass the Gym observation altogether and directly fetch the
 			# grayscale image from the ALE. This is a little faster.
 			_, reward, game_over, info = self.env.step(action)
-			#normalizing rewards to -1, 0, 1 if training env
-			reward = 1.0 if reward > 0 else -1.0 if reward < 0 else 0.0
 			accumulated_reward += reward
 
 			if self.terminal_on_life_loss:
