@@ -58,7 +58,7 @@ class AtariDQN:
             self.action_spec,
             conv_layer_params=[tuple(c) for c in self.net_conf['conv_layer_params']],
             fc_layer_params=tuple(self.net_conf['fc_layer_params']),
-            kernel_initializer=tf.keras.initializers.VarianceScaling(scale=2.0, mode='fan_in', distribution='truncated_normal'))
+            kernel_initializer=tf.keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='untruncated_normal'))
 
         self.optimizer = tf.compat.v1.train.RMSPropOptimizer(
             learning_rate=self.dqn_conf['learning_rate'],
@@ -300,7 +300,7 @@ class AtariDQN:
 
         exploration_finished = False
 
-        for i in range(self.num_iterations):
+        for _ in range(self.num_iterations):
 
             # performing action according to epsilon-greedy protocol & collecting data
             time_step, policy_state = self.driver.run(
@@ -309,11 +309,6 @@ class AtariDQN:
 
             # sampling from data
             experience, unused_info = next(iterator)
-
-            if i == 0:
-                with open('replay_exp','wb') as f:
-                    pickle.dump(experience,f)
-                print('\n\nOK\n')
 
             #training
             train_loss = self.agent.train(experience).loss
@@ -324,11 +319,9 @@ class AtariDQN:
             if frames <= self.final_exploration:
                 scaled_epsilon = self.initial_epsilon-(0.9*frames/self.final_exploration)
                 self.agent.collect_policy._epsilon = max(self.final_epsilon,scaled_epsilon)
-                #policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
             elif not exploration_finished:
                 self.agent.collect_policy._epsilon = self.final_epsilon
                 exploration_finished = True
-                #policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
 
             if step % self.eval_interval == 0 and step != restart_step:
                 self.save_model(step)
