@@ -174,7 +174,7 @@ class AtariEvolution:
 
 
 def main():
-    evolver = AtariEvolution('net_large.config','evo_preset.config')
+    evolver = AtariEvolution(os.path.join('configs','net_large.config'),os.path.join('configs','evo_preset.config'))
     evolver.evolve()
 
 

@@ -56,7 +56,7 @@ class AtariDemo:
         self.env.close()
         print('\nThe agent scored {:.2f}\n'.format(score[0]))
 
-def main(agent_path,env_name,epsilon=0,conf_path='net_large.config'):
+def main(agent_path,env_name,epsilon=0,conf_path=os.path.join('configs','net_large.config')):
     """
     Run demo of loaded agent.
     """

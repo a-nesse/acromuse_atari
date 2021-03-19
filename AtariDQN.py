@@ -338,7 +338,7 @@ class AtariDQN:
 
 
 
-def main(step, net_conf='net_large.config', dqn_conf='dqn_preset.config'):
+def main(step, net_conf=os.path.join('configs','net_large.config'), dqn_conf=os.path.join('configs','dqn_preset.config')):
     '''
     Creates AtariDQN object and runs training according to configs.
     '''
