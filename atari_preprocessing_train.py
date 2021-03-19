@@ -59,7 +59,7 @@ class AtariPreprocessing(gym_core.Wrapper):
 		self,
 		env: gym.Env,
 		frame_skip: int = 4,
-		terminal_on_life_loss: bool = True,
+		terminal_on_life_loss: bool = False,
 		screen_size: int = 84):
 		"""Constructor for an Atari 2600 preprocessor.
 		Args:
