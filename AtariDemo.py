@@ -10,7 +10,7 @@ import sys
 import tensorflow as tf
 
 from AtariNet import AtariNet
-import suite_atari_mod as suite_atari 
+import suite_atari_mod as suite_atari
 from tf_agents.environments import tf_py_environment
 
 class AtariDemo:
