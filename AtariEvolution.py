@@ -46,6 +46,9 @@ class AtariEvolution:
 
         self.evo = AtariGen(self.evo_conf)
 
+        self.spd = []
+        self.hpd = []
+
     def save_model(self, agent, gen, nr):
         """
         Method for saving agent.
@@ -67,7 +70,7 @@ class AtariEvolution:
         """
         Method for saving top-k performing agents.
         """
-        top_k = np.argpartition(self.probs, -self.save_k)[-self.save_k:]
+        top_k = np.argpartition(self.scores, -self.save_k)[-self.save_k:]
         for i, idx in enumerate(top_k):
             self.save_model(self.agents[idx], gen, i)
 
@@ -77,6 +80,8 @@ class AtariEvolution:
         self.agents = []
         for _ in range(self.n_agents):
             self.agents.append(AtariNet(obs_shape, action_shape, self.net_conf))
+        #saving network shape
+        self.net_shape = self.agents[0].get_weights().shape
 
     def _score_agent(self, agent, n_runs):
         score = 0.0
@@ -91,33 +96,79 @@ class AtariEvolution:
             score += score_run
         return score/n_runs
 
-    def _generate_probs(self):
+    def _generate_scores(self):
         max_score = 0.0
         tot_score = 0.0
         for i, a in enumerate(self.agents):
             print(i)
             s = self._score_agent(a, self.n_runs)
-            self.probs[i] = s
+            self.scores[i] = s
             if s > max_score:
                 max_score = s
             tot_score += s
-        self.probs = self.probs/np.sum(self.probs)
+        self.scores = self.scores/np.sum(self.scores)
         avg_score = tot_score / self.n_agents
         print("Max score: {}   Avg score: {}".format(max_score,avg_score))
 
-    def evolve(self):
-        print('\nInitializing gen 1 ...\n')
+    def find_avg_agent(self):
+        """
+        Calculates average agents for SPD and HPD.
+        Also saves HPD weights for the agents.
+        """
+        total_fit = np.sum(self.scores)
+        spd_sum = np.zeros(self.net_shape)
+        hpd_sum = np.zeros(self.net_shape)
+        weights = []
+        for i, agt in enumerate(self.agents):
+            spd_sum += agt.get_weights()
+            wi = self.scores[i]/total_fit
+            weights.append(wi)
+            hpd_sum += wi*agt.get_weights()
+        self.weights = weights
+        self.spd_avg = spd_sum/len(self.agents)
+        self.hpd_avg = hpd_sum
 
+    def calc_spd(self):
+        "Method for calculation standard population diversity."
+        gene_sum = np.zeros(self.net_shape)
+        for agt in self.agents:
+            gene_sum += (agt-self.spd_avg)**2
+        std_gene = np.sqrt(gene_sum/len(self.agents))
+        spd = np.sum(std_gene/self.spd_avg)/len(self.spd_avg)
+        self.spd.append(spd)
+
+    def calc_hpd(self):
+        "Method for calculation healthy population diversity."
+        self.hpd_contrib = np.zeros(len(self.agents))
+        weighted_gene_sum = np.zeros(self.net_shape)
+        for i, agt in enumerate(self.agents):
+            sq_diff = (agt.get_weights()-self.hpd_avg)**2
+            self.hpd_contrib[i] = self.weights[i]*np.sqrt(np.sum(sq_diff))
+            weighted_gene_sum += self.weights[i]-sq_diff
+        w_std_gene = np.sqrt(weighted_gene_sum)
+        hpd = np.sum(w_std_gene/self.hpd_avg)/len(self.hpd_avg)
+        self.hpd.append(hpd)
+
+    def calc_measures(self):
+        "Method that runs the calculations for the SPD and HPD measures."
+        self.find_avg_agent()
+        self.calc_spd()
+        self.calc_hpd()
+
+    def evolve(self):
+        """
+        Method that develops agents through evolution.
+        """
         self._initialize_gen()
-        self.probs = np.zeros(self.n_agents)
-        self._generate_probs()
+        self.scores = np.zeros(self.n_agents)
+        self._generate_scores()
         for gen in range(self.n_gens-1):
             print('\nEvolving generation {} ...\n'.format(gen+1))
-            new_agents = self.evo.new_gen(self.agents,self.probs)
+            new_agents = self.evo.new_gen(self.agents,self.scores)
             self.agents.clear()
             self.agents = new_agents
             print('Scoring ...')
-            self._generate_probs()
+            self._generate_scores()
             #self.save_top(gen)
         print('\nLast generation finished.\n')
 

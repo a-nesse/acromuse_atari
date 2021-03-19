@@ -110,7 +110,7 @@ class AtariPreprocessing(gym_core.Wrapper):
 		if self.env.game in ['breakout','beam_rider']:
 			self.env.step(1)
 		# implemented a maximum 30 no-op 
-		noops = np.random.randint(1,31)
+		noops = np.random.randint(0,31)
 		for _ in range(noops):
 			_, _, done, _ = self.env.step(0)
 			if done:
