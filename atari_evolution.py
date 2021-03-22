@@ -6,8 +6,8 @@ import pickle
 from preprocessing import suite_atari_mod as suite_atari
 from tf_agents.environments import tf_py_environment
 
-from AtariNet import AtariNet
-from AtariGen import AtariGen
+from atari_net import AtariNet
+from atari_gen import AtariGen
 
 import tensorflow as tf
 
