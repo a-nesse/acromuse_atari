@@ -3,7 +3,6 @@ import json
 import os
 import pickle
 import sys
-import numpy as np
 
 import tensorflow as tf
 
@@ -15,8 +14,8 @@ from tf_agents.drivers import dynamic_step_driver
 from tf_agents.utils import common
 from tf_agents.policies import epsilon_greedy_policy
 
-#from tf_agents.environments import suite_atari
-import suite_atari_mod as suite_atari
+#from preprocessing import suite_atari_mod as suite_atari
+from preprocessing import suite_atari_mod as suite_atari
 
 class AtariDQN:
     """
@@ -26,7 +25,9 @@ class AtariDQN:
     def __init__(self, net_conf_path='',dqn_conf_path=''):
         
         def _load_config(conf_path):
+            print('\n\nLoad test\n\n')
             assert os.path.exists(conf_path),'The config file specified does not exist.'
+            print('\n\nOK\n\n')
             with open(conf_path, 'r') as f:
                 conf = json.load(f)
             return conf
@@ -338,7 +339,7 @@ class AtariDQN:
 
 
 
-def main(step, net_conf=os.path.join('configs','net_large.config'), dqn_conf=os.path.join('configs','dqn_preset.config')):
+def main(step, net_conf=os.path.join(os.pardir,'configs','net_large.config'), dqn_conf=os.path.join(os.pardir,'configs','dqn_preset.config')):
     '''
     Creates AtariDQN object and runs training according to configs.
     '''

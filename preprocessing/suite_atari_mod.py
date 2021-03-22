@@ -38,9 +38,9 @@ from tf_agents.environments import suite_gym
 from tf_agents.typing import types
 
 #from tf_agents.environments import atari_preprocessing
-from preprocessing import atari_preprocessing_train
-from preprocessing import atari_preprocessing_eval
-from preprocessing import atari_preprocessing_evo
+import atari_preprocessing_train
+import atari_preprocessing_eval
+import atari_preprocessing_evo
 
 # The following is just AtariPreprocessing with frame stacking. Performance wise
 # it's much better to have stacking implemented as part of replay-buffer/agent.
