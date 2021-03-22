@@ -6,7 +6,6 @@ deepqtest.ipynb
 .ipynb_checkpoints
 testnb
 testnb.ipynb
-__pycache__/*
 testDQN
 testDQN.py
 testEvolution
@@ -17,4 +16,4 @@ logs/*
 elite_models/*
 dynamicstepdriver.py
 replay_exp
-preprocessing/__pycache__/*
+*.pyc
