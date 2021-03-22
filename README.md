@@ -1,3 +1,3 @@
-# Suggesting a modification to the ACROMUSE genetic algorithm to train agents for playing Atari games
+# Proposing a genetic algorithm for training agents to play Atari games
 Master's Thesis in Applied Data Science 2021
 
