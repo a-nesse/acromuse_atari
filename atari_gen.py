@@ -60,7 +60,11 @@ class AtariGen:
         return offspring
 
 
-    def new_gen(self,agents,probs,pc,p_mut,tour_size,elite):
+    def _calc_p_mut(self):
+        return 0
+
+
+    def new_gen(self,agents,probs,p_c,tour_size,elite):
         '''
         Function for creating new generation of agents.
         '''
@@ -69,8 +73,9 @@ class AtariGen:
         #carrying over elite agent
         new_agents.append(agents[elite])
         for _ in range(len(agents)-1):
-            n = np.random.choice([1,2],1,p=[1-pc,pc]) #selecting whether to use crossover
+            n = np.random.choice([1,2],1,p=[1-p_c,p_c]) #selecting whether to use crossover
             parent = self._tournament(probs,n,tour_size)
+            p_mut = self._calc_p_mut()
             offspring = self._create_offspring(parent,n_layers,n,p_mut)
             new_agents.append(offspring)
         return new_agents

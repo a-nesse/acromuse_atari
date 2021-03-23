@@ -37,8 +37,8 @@ class AtariEvolution:
         self.n_agents = self.evo_conf['n_agents']
         self.n_gens = self.evo_conf['n_gens']
         self.n_runs = self.evo_conf['n_runs']
+        self.elite = self.evo_conf['elite']
 
-        self.save_k = self.evo_conf['save_k']
         self.save_name = self.evo_conf['save_name']
 
         self.py_env = suite_atari.load(environment_name=self.env_name,evo_env=True)
@@ -46,8 +46,20 @@ class AtariEvolution:
 
         self.evo = AtariGen(self.evo_conf)
 
+        self.agents = []
+        self.net_shape = None
+
+        self.scores = None
+        self.elite_agent = None
+
         self.spd = []
         self.hpd = []
+        self.spd_avg = None
+        self.hpd_avg = None
+        self.weights = []
+        self.hpd_contrib = None
+        self.pc_k1 = self.evo_conf['pc_k1']
+        self.pc_k2 = self.evo_conf['pc_k2']
 
     def save_model(self, agent, gen, nr):
         """
@@ -66,11 +78,11 @@ class AtariEvolution:
             agent = pickle.load(f)
         return agent
 
-    def save_top(self,gen):
+    def save_elite(self,gen):
         """
         Method for saving top-k performing agents.
         """
-        top_k = np.argpartition(self.scores, -self.save_k)[-self.save_k:]
+        top_k = np.argpartition(self.scores, -self.elite)[-self.elite:]
         for i, idx in enumerate(top_k):
             self.save_model(self.agents[idx], gen, i)
 
@@ -98,15 +110,18 @@ class AtariEvolution:
 
     def _generate_scores(self):
         max_score = 0.0
+        elite_agent = -1
         tot_score = 0.0
-        for i, a in enumerate(self.agents):
+        for i, agt in enumerate(self.agents):
             print(i)
-            s = self._score_agent(a, self.n_runs)
+            score_i = self._score_agent(agt, self.n_runs)
             self.scores[i] = s
-            if s > max_score:
-                max_score = s
-            tot_score += s
+            if score_i > max_score:
+                max_score = score_i
+                elite_agent = i
+            tot_score += score_i
         self.scores = self.scores/np.sum(self.scores)
+        self.elite_agent = elite_agent
         avg_score = tot_score / self.n_agents
         print("Max score: {}   Avg score: {}".format(max_score,avg_score))
 
@@ -121,9 +136,9 @@ class AtariEvolution:
         weights = []
         for i, agt in enumerate(self.agents):
             spd_sum += agt.get_weights()
-            wi = self.scores[i]/total_fit
-            weights.append(wi)
-            hpd_sum += wi*agt.get_weights()
+            w_i = self.scores[i]/total_fit
+            weights.append(w_i)
+            hpd_sum += w_i*agt.get_weights()
         self.weights = weights
         self.spd_avg = spd_sum/len(self.agents)
         self.hpd_avg = hpd_sum
@@ -144,16 +159,23 @@ class AtariEvolution:
         for i, agt in enumerate(self.agents):
             sq_diff = (agt.get_weights()-self.hpd_avg)**2
             self.hpd_contrib[i] = self.weights[i]*np.sqrt(np.sum(sq_diff))
-            weighted_gene_sum += self.weights[i]-sq_diff
+            weighted_gene_sum += self.weights[i]*sq_diff
         w_std_gene = np.sqrt(weighted_gene_sum)
         hpd = np.sum(w_std_gene/self.hpd_avg)/len(self.hpd_avg)
         self.hpd.append(hpd)
 
-    def calc_measures(self):
+    def _calc_pc(self,gen):
+        "Calculates the probability of crossover given the SPD according to the ACROMUSE algorithm."
+        return ((self.spd[gen]/0.4)*(self.pc_k2-self.pc_k1))+self.pc_k1
+
+    def _calc_measures(self,gen):
         "Method that runs the calculations for the SPD and HPD measures."
         self.find_avg_agent()
         self.calc_spd()
         self.calc_hpd()
+        p_c = self._calc_pc(gen)
+        tour_size = (self.hpd[gen]/0.3)*self.n_agents
+        return p_c, tour_size
 
     def evolve(self):
         """
@@ -162,13 +184,16 @@ class AtariEvolution:
         self._initialize_gen()
         self.scores = np.zeros(self.n_agents)
         self._generate_scores()
-        for gen in range(self.n_gens-1):
-            print('\nEvolving generation {} ...\n'.format(gen+1))
-            new_agents = self.evo.new_gen(self.agents,self.scores)
+        p_c, tour_size = self._calc_measures(0)
+        for i in range(self.n_gens-1):
+            gen = i+1
+            print('\nEvolving generation {} ...\n'.format(gen))
+            new_agents = self.evo.new_gen(self.agents,self.scores,p_c,tour_size,self.elite_agent)
             self.agents.clear()
             self.agents = new_agents
             print('Scoring ...')
             self._generate_scores()
+            self._calc_measures(gen)
             #self.save_top(gen)
         print('\nLast generation finished.\n')
 
