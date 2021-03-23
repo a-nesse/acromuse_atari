@@ -15,7 +15,7 @@ from tf_agents.utils import common
 from tf_agents.policies import epsilon_greedy_policy
 
 #from preprocessing import suite_atari_mod as suite_atari
-from preprocessing import suite_atari_mod as suite_atari
+from preprocessing import suite_atari_dqn as suite_atari
 
 class AtariDQN:
     """
