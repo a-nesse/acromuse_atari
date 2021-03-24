@@ -33,6 +33,7 @@ class AtariDQN:
         self.net_conf = _load_config(net_conf_path)
         self.dqn_conf = _load_config(dqn_conf_path)
 
+        self.env_name = self.dqn_conf['env_name']
         self.num_iterations = self.dqn_conf['num_iterations']
         self.collect_steps_per_iteration = self.dqn_conf['collect_steps_per_iteration']
         self.parallell_calls = self.dqn_conf['parallell_calls'] 
@@ -43,8 +44,8 @@ class AtariDQN:
         self.num_eval_episodes = self.dqn_conf['num_eval_episodes']
         self.eval_interval = self.dqn_conf['eval_interval']
 
-        self.train_py_env = suite_atari.load(environment_name=self.dqn_conf['env_name'], eval_env=False)
-        self.eval_py_env = suite_atari.load(environment_name=self.dqn_conf['env_name'], eval_env=True)
+        self.train_py_env = suite_atari.load(environment_name=self.env_name, eval_env=False)
+        self.eval_py_env = suite_atari.load(environment_name=self.env_name, eval_env=True)
         self.train_env = tf_py_environment.TFPyEnvironment(self.train_py_env)
         self.eval_env = tf_py_environment.TFPyEnvironment(self.eval_py_env)
 
