@@ -1,7 +1,7 @@
-import numpy as np
 import json
 import os
 import pickle
+import numpy as np
 
 from tf_agents.environments import tf_py_environment
 from preprocessing import suite_atari_evo as suite_atari
