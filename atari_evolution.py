@@ -3,7 +3,7 @@ import gym, json, os
 import pickle
 
 #from tf_agents.environments import suite_atari
-from preprocessing import suite_atari_mod as suite_atari
+from preprocessing import suite_atari_evo as suite_atari
 from tf_agents.environments import tf_py_environment
 
 from atari_net import AtariNet
@@ -24,7 +24,7 @@ class AtariEvolution:
         def _load_config(conf_path):
             try:
                 assert os.path.exists(conf_path)
-            except:
+            except IOError:
                 print('The config file specified does not exist.')
             with open(conf_path, 'r') as f:
                 conf = json.load(f)
@@ -41,7 +41,7 @@ class AtariEvolution:
 
         self.save_name = self.evo_conf['save_name']
 
-        self.py_env = suite_atari.load(environment_name=self.env_name,evo_env=True)
+        self.py_env = suite_atari.load(environment_name=self.env_name)
         self.env = tf_py_environment.TFPyEnvironment(self.py_env)
 
         self.evo = AtariGen(self.evo_conf)
@@ -58,8 +58,10 @@ class AtariEvolution:
         self.hpd_avg = None
         self.weights = []
         self.hpd_contrib = None
-        self.pc_k1 = self.evo_conf['pc_k1']
-        self.pc_k2 = self.evo_conf['pc_k2']
+        self.k1_pc = self.evo_conf['k1_pc']
+        self.k2_pc = self.evo_conf['k2_pc']
+        self.k_p_mut = self.evo_conf['k_p_mut']
+
 
     def save_model(self, agent, gen, nr):
         """
@@ -68,6 +70,7 @@ class AtariEvolution:
         filepath = os.path.join(os.getcwd(), 'saved_models_evo', self.save_name + '-' + str(gen) + str(nr))
         with open(filepath, 'wb') as f:
             pickle.dump(agent, f)
+
 
     def load_model(self, name):
         """
@@ -78,6 +81,7 @@ class AtariEvolution:
             agent = pickle.load(f)
         return agent
 
+
     def save_elite(self,gen):
         """
         Method for saving top-k performing agents.
@@ -85,6 +89,7 @@ class AtariEvolution:
         top_k = np.argpartition(self.scores, -self.elite)[-self.elite:]
         for i, idx in enumerate(top_k):
             self.save_model(self.agents[idx], gen, i)
+
 
     def _initialize_gen(self):
         obs_shape = tuple(self.env.observation_spec().shape)
@@ -94,6 +99,7 @@ class AtariEvolution:
             self.agents.append(AtariNet(obs_shape, action_shape, self.net_conf))
         #saving network shape
         self.net_shape = self.agents[0].get_weights().shape
+
 
     def _score_agent(self, agent, n_runs):
         score = 0.0
@@ -108,6 +114,7 @@ class AtariEvolution:
             score += score_run
         return score/n_runs
 
+
     def _generate_scores(self):
         max_score = 0.0
         elite_agent = -1
@@ -115,7 +122,7 @@ class AtariEvolution:
         for i, agt in enumerate(self.agents):
             print(i)
             score_i = self._score_agent(agt, self.n_runs)
-            self.scores[i] = s
+            self.scores[i] = score_i
             if score_i > max_score:
                 max_score = score_i
                 elite_agent = i
@@ -124,6 +131,7 @@ class AtariEvolution:
         self.elite_agent = elite_agent
         avg_score = tot_score / self.n_agents
         print("Max score: {}   Avg score: {}".format(max_score,avg_score))
+
 
     def find_avg_agent(self):
         """
@@ -143,6 +151,7 @@ class AtariEvolution:
         self.spd_avg = spd_sum/len(self.agents)
         self.hpd_avg = hpd_sum
 
+
     def calc_spd(self):
         "Method for calculation standard population diversity."
         gene_sum = np.zeros(self.net_shape)
@@ -151,6 +160,7 @@ class AtariEvolution:
         std_gene = np.sqrt(gene_sum/len(self.agents))
         spd = np.sum(std_gene/self.spd_avg)/len(self.spd_avg)
         self.spd.append(spd)
+
 
     def calc_hpd(self):
         "Method for calculation healthy population diversity."
@@ -164,9 +174,20 @@ class AtariEvolution:
         hpd = np.sum(w_std_gene/self.hpd_avg)/len(self.hpd_avg)
         self.hpd.append(hpd)
 
+
     def _calc_pc(self,gen):
         "Calculates the probability of crossover given the SPD according to the ACROMUSE algorithm."
-        return ((self.spd[gen]/0.4)*(self.pc_k2-self.pc_k1))+self.pc_k1
+        return ((self.spd[gen]/0.4)*(self.k2_pc-self.k1_pc))+self.k1_pc
+
+
+    def _calc_p_mut_fit(self):
+        p_muts = []
+        f_max = np.max(self.scores)
+        f_min = np.min(self.scores)
+        for score in self.scores:
+            p_muts.append(self.k_p_mut*((f_max-score)/(f_max-f_min)))
+        return np.array(p_muts)
+
 
     def _calc_measures(self,gen):
         "Method that runs the calculations for the SPD and HPD measures."
@@ -174,8 +195,11 @@ class AtariEvolution:
         self.calc_spd()
         self.calc_hpd()
         p_c = self._calc_pc(gen)
+        p_mut_div = ((0.4-self.spd[-1])/0.4)*self.k_p_mut
+        p_mut_fit = self._calc_p_mut_fit()
         tour_size = (self.hpd[gen]/0.3)*self.n_agents
-        return p_c, tour_size
+        return p_c, p_mut_div, p_mut_fit, tour_size
+
 
     def evolve(self):
         """
@@ -184,17 +208,17 @@ class AtariEvolution:
         self._initialize_gen()
         self.scores = np.zeros(self.n_agents)
         self._generate_scores()
-        p_c, tour_size = self._calc_measures(0)
+        p_c, p_mut_div, p_mut_fit, tour_size = self._calc_measures(0)
         for i in range(self.n_gens-1):
             gen = i+1
             print('\nEvolving generation {} ...\n'.format(gen))
-            new_agents = self.evo.new_gen(self.agents,self.scores,p_c,tour_size,self.elite_agent)
+            new_agents = self.evo.new_gen(self.agents,self.scores,p_c,p_mut_div,p_mut_fit,tour_size,self.elite_agent)
             self.agents.clear()
             self.agents = new_agents
             print('Scoring ...')
             self._generate_scores()
             self._calc_measures(gen)
-            #self.save_top(gen)
+            self.save_elite(gen)
         print('\nLast generation finished.\n')
 
 

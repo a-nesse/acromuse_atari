@@ -11,6 +11,7 @@ class AtariGen:
         self.n_agents = self.evo_conf['n_agents']
         self.loc_p_mut = self.evo_conf['loc_p_mut']
         self.sd_mut = self.evo_conf['sd_mut']
+        self.k_p_mut = self.evo_conf['k_p_mut']
 
 
     def _tournament(self,probs,n,size):
@@ -45,26 +46,36 @@ class AtariGen:
         return arr + (mut_val*mut)
 
 
-    def _create_offspring(self,parent,n_layers,n,p_mut):
-        nw = []
-        if n == 2:
+    def _create_offspring(self,agents,parent,n_layers,p_mut):
+        """
+        Function to create offpsring.
+        """
+        n_w = []
+        n_parent = len(parent)
+        if n_parent == 2:
             for i in range(n_layers):
-                nlw = self._uniform(parent[0].get_weights()[i], parent[1].get_weights()[i])
-                nw.append(self._mutate(nlw,self.loc_p_mut))
+                nlw = self._uniform(agents[parent[0]].get_weights()[i], agents[parent[1]].get_weights()[i])
+                n_w.append(self._mutate(nlw,self.loc_p_mut))
             offspring = deepcopy(parent[0])
         else:
             for i in range(n_layers):
-                nw.append(self._mutate(parent.get_weights()[i],p_mut))
+                n_w.append(self._mutate(agents[parent].get_weights()[i],p_mut))
             offspring = deepcopy(parent)
-        offspring.set_weights(nw)
+        offspring.set_weights(n_w)
         return offspring
 
 
-    def _calc_p_mut(self):
-        return 0
+    def _calc_p_mut(self,parent,p_mut_div,p_mut_fit):
+        """
+        Calculate the mutation rate.<
+        """
+        if len(parent)==2:
+            return 0
+        else:
+            return (p_mut_fit[parent]+p_mut_div)/2
 
 
-    def new_gen(self,agents,probs,p_c,tour_size,elite):
+    def new_gen(self,agents,probs,p_c,p_mut_div,p_mut_fit,tour_size,elite):
         '''
         Function for creating new generation of agents.
         '''
@@ -73,10 +84,10 @@ class AtariGen:
         #carrying over elite agent
         new_agents.append(agents[elite])
         for _ in range(len(agents)-1):
-            n = np.random.choice([1,2],1,p=[1-p_c,p_c]) #selecting whether to use crossover
-            parent = self._tournament(probs,n,tour_size)
-            p_mut = self._calc_p_mut()
-            offspring = self._create_offspring(parent,n_layers,n,p_mut)
+            n_parent = np.random.choice([1,2],1,p=[1-p_c,p_c]) #selecting whether to use crossover
+            parent = self._tournament(probs,n_parent,tour_size)
+            p_mut = self._calc_p_mut(parent,p_mut_div,p_mut_fit)
+            offspring = self._create_offspring(agents,parent,n_layers,p_mut)
             new_agents.append(offspring)
         return new_agents
 
