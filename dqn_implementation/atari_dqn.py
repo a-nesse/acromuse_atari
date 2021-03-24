@@ -64,7 +64,8 @@ class AtariDQN:
             learning_rate=self.dqn_conf['learning_rate'],
             momentum=self.dqn_conf['momentum'],
             decay=self.dqn_conf['decay'],
-            epsilon=self.dqn_conf['mom_epsilon'])
+            epsilon=self.dqn_conf['mom_epsilon'],
+            centered=False)
 
         self.train_step_counter = tf.Variable(0)
 
@@ -82,7 +83,7 @@ class AtariDQN:
             q_network=self.q_net,
             optimizer=self.optimizer,
             emit_log_probability=True,
-            td_errors_loss_fn=common.element_wise_squared_loss,
+            td_errors_loss_fn=common.element_wise_huber_loss,
             train_step_counter=self.train_step_counter,
             epsilon_greedy=1.0,
             target_update_period=self.target_update,
