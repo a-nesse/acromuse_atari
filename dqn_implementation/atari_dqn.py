@@ -25,9 +25,7 @@ class AtariDQN:
     def __init__(self, net_conf_path='',dqn_conf_path=''):
         
         def _load_config(conf_path):
-            print('\n\nLoad test\n\n')
             assert os.path.exists(conf_path),'The config file specified does not exist.'
-            print('\n\nOK\n\n')
             with open(conf_path, 'r') as f:
                 conf = json.load(f)
             return conf
