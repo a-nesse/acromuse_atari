@@ -65,7 +65,7 @@ class AtariDQN:
             momentum=self.dqn_conf['momentum'],
             decay=self.dqn_conf['decay'],
             epsilon=self.dqn_conf['mom_epsilon'],
-            centered=False)
+            centered=True)
 
         self.train_step_counter = tf.Variable(0)
 
