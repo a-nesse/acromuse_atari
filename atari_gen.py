@@ -9,7 +9,7 @@ class AtariGen:
     def __init__(self,evo_conf):
         self.evo_conf = evo_conf
         self.n_agents = self.evo_conf['n_agents']
-        self.loc_p_mut = self.evo_conf['loc_p_mut']
+        self.p_mut_loc = self.evo_conf['p_mut_loc']
         self.sd_mut = self.evo_conf['sd_mut']
         self.k_p_mut = self.evo_conf['k_p_mut']
 
@@ -67,7 +67,7 @@ class AtariGen:
 
     def _calc_p_mut(self,parent,p_mut_div,p_mut_fit):
         """
-        Calculate the mutation rate.<
+        Calculate the mutation rate.
         """
         if len(parent)==2:
             return 0
@@ -83,13 +83,15 @@ class AtariGen:
         n_layers = len(agents[0].get_weights())
         #carrying over elite agent
         new_agents.append(agents[elite])
+        exploration_size = 0
         for _ in range(len(agents)-1):
             n_parent = np.random.choice([1,2],1,p=[1-p_c,p_c]) #selecting whether to use crossover
+            exploration_size += 2-n_parent #counting members of exploration population
             parent = self._tournament(probs,n_parent,tour_size)
             p_mut = self._calc_p_mut(parent,p_mut_div,p_mut_fit)
             offspring = self._create_offspring(agents,parent,n_layers,p_mut)
             new_agents.append(offspring)
-        return new_agents
+        return new_agents, exploration_size
 
 
 def main():
