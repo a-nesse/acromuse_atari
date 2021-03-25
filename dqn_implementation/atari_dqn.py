@@ -351,9 +351,7 @@ def main(step, net_conf=os.path.join(os.pardir,'configs','net.config'), dqn_conf
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    if len(args)==3:
-        main(args[0],args[1],args[2])
-    elif len(args)==1:
+    if len(args)==1:
         main(int(args[0]))
     else:
         main(0)
