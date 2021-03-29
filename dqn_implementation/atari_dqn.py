@@ -71,6 +71,7 @@ class AtariDQN:
         #Replay buffer size & initial collect -3 due to stacking 4 frames
         self.replay_buffer_max_length = self.dqn_conf['replay_buffer_max_length']-3
         self.initial_collect = self.dqn_conf['initial_collect_frames']-3 
+        self.save_buffer = self.dqn_conf['save_replay_buffer']
 
         self.initial_epsilon = self.dqn_conf['initial_epsilon']
         self.final_epsilon = self.dqn_conf['final_epsilon']
@@ -249,11 +250,12 @@ class AtariDQN:
             data_spec=self.agent.collect_data_spec,
             batch_size=self.train_env.batch_size,
             max_length=self.replay_buffer_max_length)
-
-        self.replay_ckp = common.Checkpointer(
-            ckpt_dir=os.path.join(os.getcwd(), 'saved_models', self.save_name + 'replay'),
-            max_to_keep=1,
-            replay_buffer = self.replay_buffer)
+        
+        if self.save_buffer:
+            self.replay_ckp = common.Checkpointer(
+                ckpt_dir=os.path.join(os.getcwd(), 'saved_models', self.save_name + 'replay'),
+                max_to_keep=1,
+                replay_buffer = self.replay_buffer)
 
         #initializing dynamic step driver
         self.driver = dynamic_step_driver.DynamicStepDriver(
@@ -269,6 +271,12 @@ class AtariDQN:
             self.agent.train_step_counter.assign(restart_step)
             passed_time = self.log[str(restart_step)][0]
             policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
+            if not self.save_buffer:
+                #refilling replay buffer
+                for _ in range(self.replay_buffer_max_length):
+                    time_step, policy_state = self.driver.run(
+                        time_step=time_step,
+                        policy_state=policy_state)
         else:
             #setting epsilon to 1.0 for initial collection (random policy)
             self.agent.collect_policy._epsilon = self.initial_epsilon
@@ -280,7 +288,8 @@ class AtariDQN:
             self.agent.train_step_counter.assign(0)
             passed_time = 0
 
-        self.replay_ckp.initialize_or_restore()
+        if self.save_buffer:
+            self.replay_ckp.initialize_or_restore()
 
         dataset = self.replay_buffer.as_dataset(
             num_parallel_calls=self.parallell_calls,
@@ -325,7 +334,8 @@ class AtariDQN:
 
             if step % self.eval_interval == 0 and step != restart_step:
                 self.save_model(step)
-                self.replay_ckp.save(global_step=step)
+                if self.save_buffer:
+                    self.replay_ckp.save(global_step=step)
                 avg_score, max_score, avg_q = self.compute_avg_score()
                 print('step = {}: Average Score = {} Max Score = {}'.format(step, avg_score, max_score))
 
