@@ -102,6 +102,11 @@ class AtariDQN:
             policy=self.agent.policy,
             epsilon=self.dqn_conf['eval_epsilon'])
 
+        self.replay_buffer = None
+        self.replay_ckp = None
+        self.driver = None
+
+
     def act(self,obs):
         '''
         Method for predicting action.
@@ -251,11 +256,10 @@ class AtariDQN:
             batch_size=self.train_env.batch_size,
             max_length=self.replay_buffer_max_length)
         
-        if self.save_buffer:
-            self.replay_ckp = common.Checkpointer(
-                ckpt_dir=os.path.join(os.getcwd(), 'saved_models', self.save_name + 'replay'),
-                max_to_keep=1,
-                replay_buffer = self.replay_buffer)
+        self.replay_ckp = common.Checkpointer(
+            ckpt_dir=os.path.join(os.getcwd(), 'saved_models', self.save_name + 'replay'),
+            max_to_keep=1,
+            replay_buffer = self.replay_buffer)
 
         #initializing dynamic step driver
         self.driver = dynamic_step_driver.DynamicStepDriver(
@@ -271,12 +275,6 @@ class AtariDQN:
             self.agent.train_step_counter.assign(restart_step)
             passed_time = self.log[str(restart_step)][0]
             policy_state = self.agent.collect_policy.get_initial_state(self.train_env.batch_size)
-            if not self.save_buffer:
-                #refilling replay buffer
-                for _ in range(self.replay_buffer_max_length):
-                    time_step, policy_state = self.driver.run(
-                        time_step=time_step,
-                        policy_state=policy_state)
         else:
             #setting epsilon to 1.0 for initial collection (random policy)
             self.agent.collect_policy._epsilon = self.initial_epsilon
@@ -288,16 +286,9 @@ class AtariDQN:
             self.agent.train_step_counter.assign(0)
             passed_time = 0
 
-        print('\n\n')
-        print(self.replay_buffer.as_dataset(single_deterministic_pass=True))
-        print('\n\n')
-
-
-
-        if self.save_buffer:
-            self.replay_ckp.initialize_or_restore()
-            #saving initial buffer to make sure that memory is sufficient
-            self.replay_ckp.save(global_step=restart_step)
+        self.replay_ckp.initialize_or_restore()
+        #saving initial buffer to make sure that memory is sufficient
+        self.replay_ckp.save(global_step=restart_step)
 
         dataset = self.replay_buffer.as_dataset(
             num_parallel_calls=self.parallell_calls,
@@ -342,11 +333,7 @@ class AtariDQN:
 
             if step % self.eval_interval == 0 and step != restart_step:
                 self.save_model(step)
-                if self.save_buffer:
-                    self.replay_ckp.save(global_step=step)
-                    print('\n\n')
-                    print(self.replay_buffer.as_dataset(single_deterministic_pass=True))
-                    print('\n\n')
+                self.replay_ckp.save(global_step=step)
                 avg_score, max_score, avg_q = self.compute_avg_score()
                 print('step = {}: Average Score = {} Max Score = {}'.format(step, avg_score, max_score))
 
@@ -364,9 +351,7 @@ def main(step):
     Creates AtariDQN object and runs training according to configs.
     '''
     net_conf=os.path.abspath(os.path.join('configs','net.config'))
-    print(net_conf)
     dqn_conf=os.path.abspath(os.path.join('configs','dqn_preset.config'))
-    print(dqn_conf)
     dqn = AtariDQN(net_conf,dqn_conf)
     if not os.path.isdir(os.path.join(os.getcwd(),'saved_models')):
         os.makedirs(os.path.join(os.getcwd(),'saved_models'))
