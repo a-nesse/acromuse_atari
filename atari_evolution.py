@@ -16,10 +16,10 @@ class AtariEvolution:
     Class for evolving networks to play Atari games.
     """
 
-    def __init__(self,
-                 net_conf_path,
-                 evo_conf_path
-                 ):
+    def __init__(
+        self,
+        net_conf_path,
+        evo_conf_path):
         
         def _load_config(conf_path):
             try:

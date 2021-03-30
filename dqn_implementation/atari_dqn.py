@@ -290,6 +290,8 @@ class AtariDQN:
 
         if self.save_buffer:
             self.replay_ckp.initialize_or_restore()
+            #saving initial buffer to make sure that memory is sufficient
+            self.replay_ckp.save(global_step=step)
 
         dataset = self.replay_buffer.as_dataset(
             num_parallel_calls=self.parallell_calls,
