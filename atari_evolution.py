@@ -166,7 +166,7 @@ class AtariEvolution:
             json.dump(params, f)
 
 
-    def _load_gen_measures(self,gen)
+    def _load_gen_measures(self,gen):
         """
         Method for loading generation measures and parameters used in training next generation.
         """
@@ -187,7 +187,7 @@ class AtariEvolution:
             self._save_model(agt,gen,i)
 
 
-    def _load_gen(self, gen)
+    def _load_gen(self, gen):
         """
         Loads the saved weights of the specified generation. 
         """
@@ -398,7 +398,9 @@ class AtariEvolution:
         print('\nLast generation reached.\n')
 
 
-def main(restart_gen,net_path=os.path.abspath(os.path.join('configs','net.config')),evo_path=os.path.abspath(os.path.join('configs','evo_preset.config'))):
+def main(restart_gen):
+    net_path=os.path.abspath(os.path.join('configs','net.config'))
+    evo_path=os.path.abspath(os.path.join('configs','evo_preset.config'))
     evolver = AtariEvolution(net_path,evo_path)
     if not os.path.isdir(os.path.join(os.getcwd(),'saved_models_evo')):
         os.makedirs(os.path.join(os.getcwd(),'saved_models_evo'))
