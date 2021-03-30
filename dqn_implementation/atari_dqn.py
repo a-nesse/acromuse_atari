@@ -71,7 +71,7 @@ class AtariDQN:
         #Replay buffer size & initial collect -3 due to stacking 4 frames
         self.replay_buffer_max_length = self.dqn_conf['replay_buffer_max_length']-3
         self.initial_collect = self.dqn_conf['initial_collect_frames']-3 
-        self.save_buffer = self.dqn_conf['save_replay_buffer']
+        self.save_buffer = bool(self.dqn_conf['save_replay_buffer'])
 
         self.initial_epsilon = self.dqn_conf['initial_epsilon']
         self.final_epsilon = self.dqn_conf['final_epsilon']
@@ -288,10 +288,16 @@ class AtariDQN:
             self.agent.train_step_counter.assign(0)
             passed_time = 0
 
+        print('\n\n')
+        print(self.replay_buffer.as_dataset(single_deterministic_pass=True))
+        print('\n\n')
+
+
+
         if self.save_buffer:
             self.replay_ckp.initialize_or_restore()
             #saving initial buffer to make sure that memory is sufficient
-            self.replay_ckp.save(global_step=step)
+            self.replay_ckp.save(global_step=restart_step)
 
         dataset = self.replay_buffer.as_dataset(
             num_parallel_calls=self.parallell_calls,
@@ -338,6 +344,9 @@ class AtariDQN:
                 self.save_model(step)
                 if self.save_buffer:
                     self.replay_ckp.save(global_step=step)
+                    print('\n\n')
+                    print(self.replay_buffer.as_dataset(single_deterministic_pass=True))
+                    print('\n\n')
                 avg_score, max_score, avg_q = self.compute_avg_score()
                 print('step = {}: Average Score = {} Max Score = {}'.format(step, avg_score, max_score))
 
@@ -350,7 +359,7 @@ class AtariDQN:
 
 
 
-def main(step, net_conf=os.path.join(os.pardir,'configs','net.config'), dqn_conf=os.path.join(os.pardir,'configs','dqn_preset.config')):
+def main(step, net_conf=os.path.abspath(os.path.join(os.pardir,'configs','net.config')), dqn_conf=os.path.abspath(os.path.join(os.pardir,'configs','dqn_preset.config'))):
     '''
     Creates AtariDQN object and runs training according to configs.
     '''

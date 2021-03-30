@@ -398,7 +398,7 @@ class AtariEvolution:
         print('\nLast generation reached.\n')
 
 
-def main(restart_gen,net_path=os.path.join('configs','net.config'),evo_path=os.path.join('configs','evo_preset.config')):
+def main(restart_gen,net_path=os.path.abspath(os.path.join('configs','net.config')),evo_path=os.path.abspath(os.path.join('configs','evo_preset.config'))):
     evolver = AtariEvolution(net_path,evo_path)
     if not os.path.isdir(os.path.join(os.getcwd(),'saved_models_evo')):
         os.makedirs(os.path.join(os.getcwd(),'saved_models_evo'))
