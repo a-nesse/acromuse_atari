@@ -102,6 +102,7 @@ class AtariDQN:
             policy=self.agent.policy,
             epsilon=self.dqn_conf['eval_epsilon'])
 
+        # declaring
         self.replay_buffer = None
         self.replay_ckp = None
         self.driver = None
@@ -117,7 +118,7 @@ class AtariDQN:
 
     def compute_avg_score(self):
         """
-        Function from https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial tutorial.
+        Function adapted from https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial tutorial.
         """
         total_score = 0.0
         max_score = 0.0
@@ -244,7 +245,7 @@ class AtariDQN:
 
     def train(self, restart_step=0):
         """
-        Adapted & modified from https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial tutorial.
+        Method for running training of DQN model.
         """
         tf.compat.v1.enable_v2_behavior()
         time_step = self.train_env.reset()
@@ -343,7 +344,6 @@ class AtariDQN:
                 if step % self.eval_interval == 0:
                     self.write_log()
                 print('step = {}: loss = {}'.format(step, train_loss))
-
 
 
 def main(step):
