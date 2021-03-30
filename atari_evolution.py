@@ -322,7 +322,9 @@ class AtariEvolution:
 
 
     def calc_measures(self,gen):
-        "Method that runs the calculations for the SPD and HPD measures."
+        """
+        Method that runs the calculations for the SPD and HPD measures.
+        """
         self._find_avg_agent()
         self._calc_spd()
         self._calc_hpd()
