@@ -1,7 +1,8 @@
 import json
 import os
 import pickle
-import shutil
+import sys
+import time
 import numpy as np
 
 from tf_agents.environments import tf_py_environment
@@ -354,19 +355,29 @@ class AtariEvolution:
         self.initialize_gen()
         if restart_gen:
             print('Restarting from generation nr. {}'.format(restart_gen))
-            restart_time, frames, p_c, p_mut_div, p_mut_fit, tour_size = self.restart_training()
+            restart_time, frames, p_c, p_mut_div, p_mut_fit, tour_size = self.restart_training(restart_gen)
             self.train_frames = frames
             start_time -= restart_time #adding time from previous training
         else:
             self.scores = np.zeros(self.n_agents)
-            gen_frames, max_score, gen_elite_agents = self.generate_scores()
-            self.elite_agents[gen] = gen_elite_agents
+            gen_frames, max_score, gen_elite_agents = self.generate_scores(0)
+            self.elite_agents[0] = gen_elite_agents
             self.train_frames += gen_frames
-            self._calc_measures(gen)
-            self.log_data()
-            p_c, p_mut_div, p_mut_fit, tour_size = self._calc_measures(0)
+            p_c, p_mut_div, p_mut_fit, tour_size = self.calc_measures(0)
+            gen_time = time.time() - start_time
+            self.log_data(
+                0,
+                gen_time,
+                max_score,
+                self.n_agents)
+            self.checkpoint(
+                0,
+                p_c,
+                p_mut_div,
+                p_mut_fit,
+                tour_size)
         for i in range(self.n_gens-1-restart_gen):
-            gen = i+1
+            gen = i+1+restart_gen
             print('\nEvolving generation {} ...\n'.format(gen))
             new_agents, exploration_size = self.evo.new_gen(
                 self.agents,
@@ -379,14 +390,14 @@ class AtariEvolution:
             self.agents.clear()
             self.agents = new_agents
             print('Scoring ...')
-            gen_frames, max_score, gen_elite_agents = self.generate_scores()
+            gen_frames, max_score, gen_elite_agents = self.generate_scores(gen)
             self.elite_agents[gen] = gen_elite_agents
             p_c, p_mut_div, p_mut_fit, tour_size = self.calc_measures(gen)
             self.train_frames += gen_frames
-            time = time.time() - start_time
+            gen_time = time.time() - start_time
             self.log_data(
                 gen,
-                time,
+                gen_time,
                 max_score,
                 exploration_size)
             self.checkpoint(
@@ -399,6 +410,9 @@ class AtariEvolution:
 
 
 def main(restart_gen):
+    """
+    Main function runs evolution using the config files.
+    """
     net_path=os.path.abspath(os.path.join('configs','net.config'))
     evo_path=os.path.abspath(os.path.join('configs','evo_preset.config'))
     evolver = AtariEvolution(net_path,evo_path)
