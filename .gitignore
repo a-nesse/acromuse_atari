@@ -17,3 +17,4 @@ elite_models/*
 dynamicstepdriver.py
 replay_exp
 *.pyc
+.vscode

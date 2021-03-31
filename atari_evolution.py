@@ -119,14 +119,14 @@ class AtariEvolution:
     def log_data(
         self,
         gen,
-        time,
+        gen_time,
         max_score,
         exploration_size):
         """
         Method for logging data from training.
         """
         self.log[gen]=[
-            time,
+            gen_time,
             self.train_frames,
             max_score,
             self.scores,
@@ -220,19 +220,38 @@ class AtariEvolution:
 
 
     def load_checkpoint(self,gen):
+        """
+        Loads specified saved generation of agents and measures of that generation.
+        """
         self._load_gen(gen)
         self.scores, self.spd, self.hpd, p_c, p_mut_div, p_mut_fit, tour_size = self._load_gen_measures(gen)
         return p_c, p_mut_div, p_mut_fit, tour_size
 
 
     def initialize_gen(self):
+        """
+        Method for initializing first generation of agents.
+        """
         obs_shape = tuple(self.env.observation_spec().shape)
         action_shape = self.env.action_spec().maximum - self.env.action_spec().minimum + 1
         self.agents = []
         for _ in range(self.n_agents):
             self.agents.append(AtariNet(obs_shape, action_shape, self.net_conf))
         #saving network shape
-        self.net_shape = self.agents[0].get_weights().shape
+        shapes = []
+        for w in self.agents[0].get_weights():
+            shapes.append(w.shape)
+        self.net_shape = shapes
+
+
+    def zero_net(self):
+        """
+        Returns a list of 0-arrays with same shape as net weights.
+        """
+        zero_net = []
+        for layer in self.net_shape:
+            zero_net.append(np.zeros(layer))
+        return zero_net
 
 
     def _score_agent(self, agent, n_runs):
@@ -251,7 +270,7 @@ class AtariEvolution:
         return score/n_runs, frames
 
 
-    def generate_scores(self,gen):
+    def generate_scores(self):
         max_score = 0.0
         tot_frames = 0
         for i, agt in enumerate(self.agents):
@@ -287,7 +306,7 @@ class AtariEvolution:
 
     def _calc_spd(self):
         "Method for calculation standard population diversity."
-        gene_sum = np.zeros(self.net_shape)
+        gene_sum = self.zero_net
         for agt in self.agents:
             gene_sum += (agt-self.spd_avg)**2
         std_gene = np.sqrt(gene_sum/len(self.agents))
@@ -308,7 +327,7 @@ class AtariEvolution:
         self.hpd = hpd
 
 
-    def _calc_pc(self,gen):
+    def _calc_pc(self):
         "Calculates the probability of crossover given the SPD according to the ACROMUSE algorithm."
         return ((self.spd/0.4)*(self.k2_pc-self.k1_pc))+self.k1_pc
 
@@ -329,7 +348,7 @@ class AtariEvolution:
         self._find_avg_agent()
         self._calc_spd()
         self._calc_hpd()
-        p_c = self._calc_pc(gen)
+        p_c = self._calc_pc()
         p_mut_div = ((0.4-self.spd)/0.4)*self.k_p_mut
         p_mut_fit = self._calc_p_mut_fit()
         tour_size = (self.hpd/0.3)*self.n_agents
@@ -360,7 +379,7 @@ class AtariEvolution:
             start_time -= restart_time #adding time from previous training
         else:
             self.scores = np.zeros(self.n_agents)
-            gen_frames, max_score, gen_elite_agents = self.generate_scores(0)
+            gen_frames, max_score, gen_elite_agents = self.generate_scores()
             self.elite_agents[0] = gen_elite_agents
             self.train_frames += gen_frames
             p_c, p_mut_div, p_mut_fit, tour_size = self.calc_measures(0)
@@ -390,7 +409,7 @@ class AtariEvolution:
             self.agents.clear()
             self.agents = new_agents
             print('Scoring ...')
-            gen_frames, max_score, gen_elite_agents = self.generate_scores(gen)
+            gen_frames, max_score, gen_elite_agents = self.generate_scores()
             self.elite_agents[gen] = gen_elite_agents
             p_c, p_mut_div, p_mut_fit, tour_size = self.calc_measures(gen)
             self.train_frames += gen_frames
