@@ -71,7 +71,6 @@ class AtariDQN:
         #Replay buffer size & initial collect -3 due to stacking 4 frames
         self.replay_buffer_max_length = self.dqn_conf['replay_buffer_max_length']-3
         self.initial_collect = self.dqn_conf['initial_collect_frames']-3 
-        self.save_buffer = bool(self.dqn_conf['save_replay_buffer'])
 
         self.initial_epsilon = self.dqn_conf['initial_epsilon']
         self.final_epsilon = self.dqn_conf['final_epsilon']
@@ -350,8 +349,8 @@ def main(step):
     '''
     Creates AtariDQN object and runs training according to configs.
     '''
-    net_conf=os.path.abspath(os.path.join('configs','net.config'))
-    dqn_conf=os.path.abspath(os.path.join('configs','dqn_preset.config'))
+    net_conf=os.path.abspath(os.path.join('..','configs','net.config'))
+    dqn_conf=os.path.abspath(os.path.join('..','configs','dqn_preset.config'))
     dqn = AtariDQN(net_conf,dqn_conf)
     if not os.path.isdir(os.path.join(os.getcwd(),'saved_models')):
         os.makedirs(os.path.join(os.getcwd(),'saved_models'))
