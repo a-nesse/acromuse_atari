@@ -28,6 +28,21 @@ class AtariNet(tf.keras.Sequential):
         self.add(layers.Dense(action_shape, activation=None, kernel_initializer=initializer))
         self.build()
 
+
+    def get_weights(self):
+        """
+        Gets weights and converts to an array of np.array objects.
+        """
+        return np.array(super().get_weights(),dtype=object)
+
+
+    def set_weights(self,weights):
+        """
+        Receives an array of np.arrays, converts to a list to set as weights for the agent.
+        """
+        super().set_weights(list(weights))
+
+
     def predict(self, observation, epsilon=0):
         activations = super().predict(observation.observation)
         if epsilon:

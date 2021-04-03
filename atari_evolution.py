@@ -246,12 +246,12 @@ class AtariEvolution:
 
     def zero_net(self):
         """
-        Returns a list of 0-arrays with same shape as net weights.
+        Returns an array containing 0-arrays with same shape as net weights.
         """
         zero_net = []
         for layer in self.net_shape:
             zero_net.append(np.zeros(layer))
-        return zero_net
+        return np.array(zero_net,dtype=object)
 
 
     def _score_agent(self, agent, n_runs):
@@ -285,14 +285,30 @@ class AtariEvolution:
         return tot_frames, max_score, gen_elite_agents
 
 
+    def _arr_sum(self,arr):
+        "Function summing all elements in array of np.arrays"
+        tot_sum = 0
+        for a in arr:
+            tot_sum += np.sum(a)
+        return tot_sum
+    
+
+    def _arr_sqrt(self,arr):
+        "Function finding the square root of all elements in array of np.arrays"
+        nw = []
+        for a in arr:
+            nw.append(np.sqrt(a))
+        return np.array(nw,dtype=object)
+
+
     def _find_avg_agent(self):
         """
         Calculates average agents for SPD and HPD.
         Also saves HPD weights for the agents.
         """
         total_fit = np.sum(self.scores)
-        spd_sum = np.zeros(self.net_shape)
-        hpd_sum = np.zeros(self.net_shape)
+        spd_sum = self.zero_net()
+        hpd_sum = self.zero_net()
         weights = []
         for i, agt in enumerate(self.agents):
             spd_sum += agt.get_weights()
@@ -306,24 +322,24 @@ class AtariEvolution:
 
     def _calc_spd(self):
         "Method for calculation standard population diversity."
-        gene_sum = self.zero_net
+        gene_sum = self.zero_net()
         for agt in self.agents:
             gene_sum += (agt-self.spd_avg)**2
-        std_gene = np.sqrt(gene_sum/len(self.agents))
-        spd = np.sum(std_gene/self.spd_avg)/len(self.spd_avg)
+        std_gene = self._arr_sqrt(gene_sum/len(self.agents))
+        spd = self._arr_sum(std_gene/self.spd_avg)/len(self.spd_avg)
         self.spd = spd
 
 
     def _calc_hpd(self):
         "Method for calculation healthy population diversity."
         self.hpd_contrib = np.zeros(len(self.agents))
-        weighted_gene_sum = np.zeros(self.net_shape)
+        weighted_gene_sum = self.zero_net()
         for i, agt in enumerate(self.agents):
             sq_diff = (agt.get_weights()-self.hpd_avg)**2
-            self.hpd_contrib[i] = self.weights[i]*np.sqrt(np.sum(sq_diff))
+            self.hpd_contrib[i] = self.weights[i]*self._arr_sqrt(self._arr_sum(sq_diff))
             weighted_gene_sum += self.weights[i]*sq_diff
-        w_std_gene = np.sqrt(weighted_gene_sum)
-        hpd = np.sum(w_std_gene/self.hpd_avg)/len(self.hpd_avg)
+        w_std_gene = self._arr_sqrt(weighted_gene_sum)
+        hpd = self._arr_sum(w_std_gene/self.hpd_avg)/len(self.hpd_avg)
         self.hpd = hpd
 
 
