@@ -50,7 +50,7 @@ class AtariEvolution:
         self.agents = []
         self.net_shape = None
 
-        self.scores = None
+        self.scores = np.zeros(self.n_agents)
 
         self.spd = 0
         self.hpd = 0
@@ -228,22 +228,6 @@ class AtariEvolution:
         return p_c, p_mut_div, p_mut_fit, tour_size
 
 
-    def initialize_gen(self):
-        """
-        Method for initializing first generation of agents.
-        """
-        obs_shape = tuple(self.env.observation_spec().shape)
-        action_shape = self.env.action_spec().maximum - self.env.action_spec().minimum + 1
-        self.agents = []
-        for _ in range(self.n_agents):
-            self.agents.append(AtariNet(obs_shape, action_shape, self.net_conf))
-        #saving network shape
-        shapes = []
-        for w in self.agents[0].get_weights():
-            shapes.append(w.shape)
-        self.net_shape = shapes
-
-
     def zero_net(self):
         """
         Returns an array containing 0-arrays with same shape as net weights.
@@ -324,10 +308,11 @@ class AtariEvolution:
         "Method for calculation standard population diversity."
         gene_sum = self.zero_net()
         for agt in self.agents:
-            gene_sum += (agt-self.spd_avg)**2
+            gene_sum += (agt.get_weights()-self.spd_avg)**2
         std_gene = self._arr_sqrt(gene_sum/len(self.agents))
         spd = self._arr_sum(std_gene/self.spd_avg)/len(self.spd_avg)
         self.spd = spd
+        print('Calculated SPD: {}'.format(spd))
 
 
     def _calc_hpd(self):
@@ -336,11 +321,12 @@ class AtariEvolution:
         weighted_gene_sum = self.zero_net()
         for i, agt in enumerate(self.agents):
             sq_diff = (agt.get_weights()-self.hpd_avg)**2
-            self.hpd_contrib[i] = self.weights[i]*self._arr_sqrt(self._arr_sum(sq_diff))
+            self.hpd_contrib[i] = self.weights[i]*np.sqrt(self._arr_sum(sq_diff))
             weighted_gene_sum += self.weights[i]*sq_diff
         w_std_gene = self._arr_sqrt(weighted_gene_sum)
         hpd = self._arr_sum(w_std_gene/self.hpd_avg)/len(self.hpd_avg)
         self.hpd = hpd
+        print('Calculated HPD: {}'.format(hpd))
 
 
     def _calc_pc(self):
@@ -357,7 +343,7 @@ class AtariEvolution:
         return np.array(p_muts)
 
 
-    def calc_measures(self,gen):
+    def calc_measures(self):
         """
         Method that runs the calculations for the SPD and HPD measures.
         """
@@ -376,29 +362,32 @@ class AtariEvolution:
         Method for restarting training from saved agent checkpoint.
         """
         self.load_log_elite()
-        time = self.log[gen][0]
+        gen_time = self.log[gen][0]
         frames = self.log[gen][1]
         p_c, p_mut_div, p_mut_fit, tour_size = self.load_checkpoint(gen)
-        return time, frames, p_c, p_mut_div, p_mut_fit, tour_size
+        return gen_time, frames, p_c, p_mut_div, p_mut_fit, tour_size
 
 
-    def evolve(self,restart_gen):
+    def initialize_gen(self,start_time,restart):
         """
-        Method that develops agents through evolution.
+        Method for initializing first generation of agents.
         """
-        start_time = time.time()
-        self.initialize_gen()
-        if restart_gen:
-            print('Restarting from generation nr. {}'.format(restart_gen))
-            restart_time, frames, p_c, p_mut_div, p_mut_fit, tour_size = self.restart_training(restart_gen)
-            self.train_frames = frames
-            start_time -= restart_time #adding time from previous training
-        else:
-            self.scores = np.zeros(self.n_agents)
+        obs_shape = tuple(self.env.observation_spec().shape)
+        action_shape = self.env.action_spec().maximum - self.env.action_spec().minimum + 1
+        self.agents = []
+        for _ in range(self.n_agents):
+            self.agents.append(AtariNet(obs_shape, action_shape, self.net_conf))
+        #saving network shape
+        shapes = []
+        for w in self.agents[0].get_weights():
+            shapes.append(w.shape)
+        self.net_shape = shapes
+        if not restart:
+            #for initializing generation zero
             gen_frames, max_score, gen_elite_agents = self.generate_scores()
             self.elite_agents[0] = gen_elite_agents
+            p_c, p_mut_div, p_mut_fit, tour_size = self.calc_measures()
             self.train_frames += gen_frames
-            p_c, p_mut_div, p_mut_fit, tour_size = self.calc_measures(0)
             gen_time = time.time() - start_time
             self.log_data(
                 0,
@@ -411,6 +400,20 @@ class AtariEvolution:
                 p_mut_div,
                 p_mut_fit,
                 tour_size)
+
+
+    def evolve(self,restart_gen):
+        """
+        Method that develops agents through evolution.
+        """
+        start_time = time.time()
+        print('Initializing...')
+        self.initialize_gen(start_time,restart_gen)
+        if restart_gen:
+            print('Restarting from generation nr. {}'.format(restart_gen))
+            restart_time, frames, p_c, p_mut_div, p_mut_fit, tour_size = self.restart_training(restart_gen)
+            self.train_frames = frames
+            start_time -= restart_time #adding time from previous training
         for i in range(self.n_gens-1-restart_gen):
             gen = i+1+restart_gen
             print('\nEvolving generation {} ...\n'.format(gen))
@@ -427,7 +430,7 @@ class AtariEvolution:
             print('Scoring ...')
             gen_frames, max_score, gen_elite_agents = self.generate_scores()
             self.elite_agents[gen] = gen_elite_agents
-            p_c, p_mut_div, p_mut_fit, tour_size = self.calc_measures(gen)
+            p_c, p_mut_div, p_mut_fit, tour_size = self.calc_measures()
             self.train_frames += gen_frames
             gen_time = time.time() - start_time
             self.log_data(

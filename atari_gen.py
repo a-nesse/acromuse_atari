@@ -55,7 +55,7 @@ class AtariGen:
         if n_parent == 2:
             for i in range(n_layers):
                 nlw = self._uniform(agents[parent[0]].get_weights()[i], agents[parent[1]].get_weights()[i])
-                n_w.append(self._mutate(nlw,self.loc_p_mut))
+                n_w.append(self._mutate(nlw,self.p_mut_loc))
             offspring = deepcopy(parent[0])
         else:
             for i in range(n_layers):
