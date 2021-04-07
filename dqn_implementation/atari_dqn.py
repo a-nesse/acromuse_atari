@@ -308,7 +308,7 @@ class AtariDQN:
 
         exploration_finished = False
 
-        for _ in range(self.num_iterations):
+        for _ in range(self.num_iterations-restart_step):
 
             # performing action according to epsilon-greedy protocol & collecting data
             time_step, policy_state = self.driver.run(
