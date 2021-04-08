@@ -11,6 +11,8 @@ testDQN.py
 testEvolution
 testEvolution.py
 saved_models/*
+saved_models_evo/*
+dqn_implementation/saved_models/*
 logs/*
 .pylintrc
 elite_models/*

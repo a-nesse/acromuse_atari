@@ -310,6 +310,9 @@ class AtariEvolution:
         for agt in self.agents:
             gene_sum += (agt.get_weights()-self.spd_avg)**2
         std_gene = self._arr_sqrt(gene_sum/len(self.agents))
+        print('\nIn SPD:\n')
+        print(std_gene/self.spd_avg)
+        print(len(self.spd_avg))
         spd = self._arr_sum(std_gene/self.spd_avg)/len(self.spd_avg)
         self.spd = spd
         print('Calculated SPD: {}'.format(spd))
@@ -325,6 +328,9 @@ class AtariEvolution:
             weighted_gene_sum += self.weights[i]*sq_diff
         w_std_gene = self._arr_sqrt(weighted_gene_sum)
         hpd = self._arr_sum(w_std_gene/self.hpd_avg)/len(self.hpd_avg)
+        print('\nIn HPD:\n')
+        print(w_std_gene/self.hpd_avg)
+        print(len(self.hpd_avg))
         self.hpd = hpd
         print('Calculated HPD: {}'.format(hpd))
 
