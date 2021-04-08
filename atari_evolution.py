@@ -129,7 +129,7 @@ class AtariEvolution:
             gen_time,
             self.train_frames,
             max_score,
-            self.scores,
+            list(self.scores),
             self.spd,
             self.hpd,
             exploration_size]
