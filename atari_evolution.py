@@ -52,8 +52,8 @@ class AtariEvolution:
 
         self.scores = np.zeros(self.n_agents)
 
-        self.spd = 0
-        self.hpd = 0
+        self.spd = 0.0
+        self.hpd = 0.0
         self.spd_avg = None
         self.hpd_avg = None
         self.weights = []
@@ -163,7 +163,7 @@ class AtariEvolution:
         filepath = os.path.join(
             os.getcwd(),
             'saved_models_evo',
-            self.save_name + str(gen) + '-gen_params')
+            self.save_name + '-' + str(gen) + '-gen_params')
         with open(filepath, 'w') as f:
             json.dump(params, f)
 
@@ -210,7 +210,7 @@ class AtariEvolution:
         """
         self._save_gen(gen)
         params = [
-            self.scores,
+            list(self.scores),
             self.spd,
             self.hpd,
             p_c,
@@ -286,7 +286,7 @@ class AtariEvolution:
                 max_score = score_i
         gen_elite_agents = np.argpartition(self.scores, -self.elite)[-self.elite:]
         print("Max score: {}".format(max_score))
-        return tot_frames, max_score, list(np.array(gen_elite_agents,dtype=int))
+        return tot_frames, max_score, [int(x) for x in gen_elite_agents]
 
 
     def _arr_sum(self,arr):
@@ -358,7 +358,7 @@ class AtariEvolution:
         f_min = np.min(self.scores)
         for score in self.scores:
             p_muts.append(self.k_p_mut*((f_max-score)/(f_max-f_min)))
-        return np.array(p_muts)
+        return p_muts
 
 
     def calc_measures(self):
@@ -386,7 +386,7 @@ class AtariEvolution:
         return gen_time, frames, p_c, p_mut_div, p_mut_fit, tour_size
 
 
-    def initialize_gen(self,start_time,restart):
+    def initialize_gen(self,start_time,restart_gen):
         """
         Method for initializing first generation of agents.
         """
@@ -398,7 +398,7 @@ class AtariEvolution:
         #saving network shape & number of genes
         self._save_net_shape()
         self._calc_n_weights()
-        if not restart:
+        if not restart_gen:
             #for initializing generation zero
             gen_frames, max_score, gen_elite_agents = self.generate_scores()
             self.elite_agents[0] = gen_elite_agents
@@ -416,6 +416,12 @@ class AtariEvolution:
                 p_mut_div,
                 p_mut_fit,
                 tour_size)
+            return gen_time, gen_frames, p_c, p_mut_div, p_mut_fit, tour_size
+        else:
+            print('Restarting from generation nr. {}'.format(restart_gen))
+            restart_time, restart_frames, p_c, p_mut_div, p_mut_fit, tour_size = self.restart_training(restart_gen)
+            self.train_frames = restart_frames
+            return restart_time, 0, p_c, p_mut_div, p_mut_fit, tour_size
 
 
     def evolve(self,restart_gen):
@@ -424,12 +430,9 @@ class AtariEvolution:
         """
         start_time = time.time()
         print('Initializing...')
-        self.initialize_gen(start_time,restart_gen)
+        gen_time, _, p_c, p_mut_div, p_mut_fit, tour_size = self.initialize_gen(start_time,restart_gen)
         if restart_gen:
-            print('Restarting from generation nr. {}'.format(restart_gen))
-            restart_time, frames, p_c, p_mut_div, p_mut_fit, tour_size = self.restart_training(restart_gen)
-            self.train_frames = frames
-            start_time -= restart_time #adding time from previous training
+            start_time -= gen_time
         for i in range(self.n_gens-1-restart_gen):
             gen = i+1+restart_gen
             print('\nEvolving generation {} ...\n'.format(gen))
