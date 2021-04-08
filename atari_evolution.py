@@ -65,6 +65,7 @@ class AtariEvolution:
         self.log = {}
         self.elite_agents = {}
         self.train_frames = 0
+        self.n_weights = 0
 
 
     def _save_model(self, agent, gen, nr):
@@ -238,6 +239,25 @@ class AtariEvolution:
         return np.array(zero_net,dtype=object)
 
 
+    def _save_net_shape(self):
+        "Method for saving shape of network."
+        shapes = []
+        for w in self.agents[0].get_weights():
+            shapes.append(w.shape)
+        self.net_shape = shapes
+
+
+    def _calc_n_weights(self):
+        "Method for saving number of weights/biases in network"
+        n_weights = 0
+        for layer in self.net_shape:
+            l_weights = 1
+            for dim in layer:
+                l_weights *= dim
+            n_weights += l_weights
+        self.n_weights = n_weights
+
+
     def _score_agent(self, agent, n_runs):
         score = 0.0
         frames = 0
@@ -266,7 +286,7 @@ class AtariEvolution:
                 max_score = score_i
         gen_elite_agents = np.argpartition(self.scores, -self.elite)[-self.elite:]
         print("Max score: {}".format(max_score))
-        return tot_frames, max_score, gen_elite_agents
+        return tot_frames, max_score, list(np.array(gen_elite_agents,dtype=int))
 
 
     def _arr_sum(self,arr):
@@ -309,30 +329,22 @@ class AtariEvolution:
         gene_sum = self.zero_net()
         for agt in self.agents:
             gene_sum += (agt.get_weights()-self.spd_avg)**2
-        std_gene = self._arr_sqrt(gene_sum/len(self.agents))
-        print('\nIn SPD:\n')
-        print(std_gene/self.spd_avg)
-        print(len(self.spd_avg))
-        spd = self._arr_sum(std_gene/self.spd_avg)/len(self.spd_avg)
+        std_gene = self._arr_sqrt(gene_sum/self.n_agents)
+        spd = self._arr_sum(std_gene/np.abs(self.spd_avg))/self.n_weights
         self.spd = spd
-        print('Calculated SPD: {}'.format(spd))
 
 
     def _calc_hpd(self):
         "Method for calculation healthy population diversity."
-        self.hpd_contrib = np.zeros(len(self.agents))
+        self.hpd_contrib = np.zeros(self.n_agents)
         weighted_gene_sum = self.zero_net()
         for i, agt in enumerate(self.agents):
             sq_diff = (agt.get_weights()-self.hpd_avg)**2
             self.hpd_contrib[i] = self.weights[i]*np.sqrt(self._arr_sum(sq_diff))
             weighted_gene_sum += self.weights[i]*sq_diff
         w_std_gene = self._arr_sqrt(weighted_gene_sum)
-        hpd = self._arr_sum(w_std_gene/self.hpd_avg)/len(self.hpd_avg)
-        print('\nIn HPD:\n')
-        print(w_std_gene/self.hpd_avg)
-        print(len(self.hpd_avg))
+        hpd = self._arr_sum(w_std_gene/np.abs(self.hpd_avg))/self.n_weights
         self.hpd = hpd
-        print('Calculated HPD: {}'.format(hpd))
 
 
     def _calc_pc(self):
@@ -383,11 +395,9 @@ class AtariEvolution:
         self.agents = []
         for _ in range(self.n_agents):
             self.agents.append(AtariNet(obs_shape, action_shape, self.net_conf))
-        #saving network shape
-        shapes = []
-        for w in self.agents[0].get_weights():
-            shapes.append(w.shape)
-        self.net_shape = shapes
+        #saving network shape & number of genes
+        self._save_net_shape()
+        self._calc_n_weights()
         if not restart:
             #for initializing generation zero
             gen_frames, max_score, gen_elite_agents = self.generate_scores()
