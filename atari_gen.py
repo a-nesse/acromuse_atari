@@ -81,8 +81,9 @@ class AtariGen:
         '''
         new_agents = []
         n_layers = len(agents[0].get_weights())
-        #carrying over elite agent
-        new_agents.append(agents[elite])
+        #carrying over elite agent(s)
+        for agt in elite:
+            new_agents.append(agents[agt])
         exploration_size = 0
         for _ in range(len(agents)-1):
             n_parent = np.random.choice([1,2],1,p=[1-p_c,p_c]) #selecting whether to use crossover
