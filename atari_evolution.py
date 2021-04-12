@@ -45,7 +45,10 @@ class AtariEvolution:
         self.py_env = suite_atari.load(environment_name=self.env_name)
         self.env = tf_py_environment.TFPyEnvironment(self.py_env)
 
-        self.evo = AtariGen(self.evo_conf)
+        self.obs_shape = tuple(self.env.observation_spec().shape)
+        self.action_shape = self.env.action_spec().maximum - self.env.action_spec().minimum + 1
+
+        self.evo = AtariGen(self.evo_conf,self.net_conf,self.obs_shape,self.action_shape)
 
         self.agents = []
         self.net_shape = None
@@ -259,22 +262,29 @@ class AtariEvolution:
 
 
     def _score_agent(self, agent, n_runs):
+        """
+        Score one agent on the environment. 
+        Returns the median score.
+        """
         score = 0.0
         frames = 0
-        for _ in range(n_runs):
-            score_run = 0.0
+        score = np.zeros(n_runs)
+        for i in range(n_runs):
             obs = self.env.reset()
             while not obs.is_last():
                 action = agent.predict(obs)
                 obs = self.env.step(action)
-                score_run += obs.reward.numpy()[0]
+                score[i] += obs.reward.numpy()[0]
                 frames += 1
             self.py_env.close()
-            score += score_run
-        return score/n_runs, frames
+        median_score = np.median(score)
+        return median_score, frames
 
 
     def generate_scores(self):
+        """
+        Generate scores for all agents in the generation.
+        """
         max_score = 0.0
         tot_frames = 0
         for i, agt in enumerate(self.agents):
@@ -315,10 +325,10 @@ class AtariEvolution:
         hpd_sum = self.zero_net()
         weights = []
         for i, agt in enumerate(self.agents):
-            spd_sum += agt.get_weights()
+            spd_sum += agt.get_shifted_weights()
             w_i = self.scores[i]/total_fit
             weights.append(w_i)
-            hpd_sum += w_i*agt.get_weights()
+            hpd_sum += w_i*agt.get_shifted_weights()
         self.weights = weights
         self.spd_avg = spd_sum/len(self.agents)
         self.hpd_avg = hpd_sum
@@ -328,9 +338,15 @@ class AtariEvolution:
         "Method for calculation standard population diversity."
         gene_sum = self.zero_net()
         for agt in self.agents:
-            gene_sum += (agt.get_weights()-self.spd_avg)**2
+            gene_sum += (agt.get_shifted_weights()-self.spd_avg)**2
         std_gene = self._arr_sqrt(gene_sum/self.n_agents)
-        spd = self._arr_sum(std_gene/np.abs(self.spd_avg))/self.n_weights
+        spd = self._arr_sum(std_gene/self.spd_avg)/self.n_weights
+        print('\nSPD:')
+        print(spd)
+        if spd > 0.4:
+            print('SPD max exceeded\n')
+            #setting to max spd value
+            spd = 0.4
         self.spd = spd
 
 
@@ -339,11 +355,17 @@ class AtariEvolution:
         self.hpd_contrib = np.zeros(self.n_agents)
         weighted_gene_sum = self.zero_net()
         for i, agt in enumerate(self.agents):
-            sq_diff = (agt.get_weights()-self.hpd_avg)**2
+            sq_diff = (agt.get_shifted_weights()-self.hpd_avg)**2
             self.hpd_contrib[i] = self.weights[i]*np.sqrt(self._arr_sum(sq_diff))
             weighted_gene_sum += self.weights[i]*sq_diff
         w_std_gene = self._arr_sqrt(weighted_gene_sum)
-        hpd = self._arr_sum(w_std_gene/np.abs(self.hpd_avg))/self.n_weights
+        hpd = self._arr_sum(w_std_gene/self.hpd_avg)/self.n_weights
+        print('\nHPD:')
+        print(hpd)
+        if hpd > 0.3:
+            print('HPD max exceeded\n')
+            #setting to max hpd value
+            hpd = 0.3
         self.hpd = hpd
 
 
@@ -371,7 +393,7 @@ class AtariEvolution:
         p_c = self._calc_pc()
         p_mut_div = ((0.4-self.spd)/0.4)*self.k_p_mut
         p_mut_fit = self._calc_p_mut_fit()
-        tour_size = (self.hpd/0.3)*self.n_agents
+        tour_size = int((self.hpd/0.3)*self.n_agents)
         return p_c, p_mut_div, p_mut_fit, tour_size
 
 
@@ -390,11 +412,9 @@ class AtariEvolution:
         """
         Method for initializing first generation of agents.
         """
-        obs_shape = tuple(self.env.observation_spec().shape)
-        action_shape = self.env.action_spec().maximum - self.env.action_spec().minimum + 1
         self.agents = []
         for _ in range(self.n_agents):
-            self.agents.append(AtariNet(obs_shape, action_shape, self.net_conf))
+            self.agents.append(AtariNet(self.obs_shape, self.action_shape, self.net_conf))
         #saving network shape & number of genes
         self._save_net_shape()
         self._calc_n_weights()

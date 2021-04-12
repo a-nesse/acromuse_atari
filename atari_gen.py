@@ -1,13 +1,16 @@
 import numpy as np
-from copy import deepcopy
+from atari_net import AtariNet
 
 class AtariGen:
     """
     Class containing functions to evolve networks.
     """
 
-    def __init__(self,evo_conf):
+    def __init__(self,evo_conf,net_conf,obs_shape,action_shape):
         self.evo_conf = evo_conf
+        self.net_conf = net_conf
+        self.obs_shape = obs_shape
+        self.action_shape = action_shape
         self.n_agents = self.evo_conf['n_agents']
         self.p_mut_loc = self.evo_conf['p_mut_loc']
         self.sd_mut = self.evo_conf['sd_mut']
@@ -46,7 +49,7 @@ class AtariGen:
         return arr + (mut_val*mut)
 
 
-    def _create_offspring(self,agents,parent,n_layers,p_mut):
+    def _create_offspring(self,agents,parent,n_layers,p_mut,clip):
         """
         Function to create offpsring.
         """
@@ -56,12 +59,13 @@ class AtariGen:
             for i in range(n_layers):
                 nlw = self._uniform(agents[parent[0]].get_weights()[i], agents[parent[1]].get_weights()[i])
                 n_w.append(self._mutate(nlw,self.p_mut_loc))
-            offspring = deepcopy(parent[0])
         else:
             for i in range(n_layers):
-                n_w.append(self._mutate(agents[parent].get_weights()[i],p_mut))
-            offspring = deepcopy(parent)
+                n_w.append(self._mutate(agents[parent[0]].get_weights()[i],p_mut))
+        offspring = AtariNet(self.obs_shape, self.action_shape, self.net_conf)
         offspring.set_weights(n_w)
+        if clip:
+            offspring.clip_weights()
         return offspring
 
 
@@ -72,10 +76,10 @@ class AtariGen:
         if len(parent)==2:
             return 0
         else:
-            return (p_mut_fit[parent]+p_mut_div)/2
+            return (p_mut_fit[int(parent[0])]+p_mut_div)/2
 
 
-    def new_gen(self,agents,probs,p_c,p_mut_div,p_mut_fit,tour_size,elite):
+    def new_gen(self,agents,probs,p_c,p_mut_div,p_mut_fit,tour_size,elite,clip=True):
         '''
         Function for creating new generation of agents.
         '''
@@ -85,12 +89,12 @@ class AtariGen:
         for agt in elite:
             new_agents.append(agents[agt])
         exploration_size = 0
-        for _ in range(len(agents)-1):
-            n_parent = np.random.choice([1,2],1,p=[1-p_c,p_c]) #selecting whether to use crossover
-            exploration_size += 2-n_parent #counting members of exploration population
+        for _ in range(len(agents)-len(elite)):
+            n_parent = np.random.choice([1,2],1,p=[1-p_c,p_c])[0] #selecting whether to use crossover
+            exploration_size += int(2-n_parent) #counting members of exploration population
             parent = self._tournament(probs,n_parent,tour_size)
             p_mut = self._calc_p_mut(parent,p_mut_div,p_mut_fit)
-            offspring = self._create_offspring(agents,parent,n_layers,p_mut)
+            offspring = self._create_offspring(agents,parent,n_layers,p_mut,clip)
             new_agents.append(offspring)
         return new_agents, exploration_size
 

@@ -11,11 +11,18 @@ class AtariNet(tf.keras.Sequential):
     """
 
 
-    def __init__(self, input_shape, action_shape, net_conf):
+    def __init__(self, input_shape, action_shape, net_conf, minval=-1, maxval=1, initializer='evo'):
 
         super().__init__()
 
-        initializer = initializers.VarianceScaling(scale=2.0, mode='fan_in', distribution='truncated_normal')
+        self.minval = minval
+        self.maxval = maxval
+
+        if initializer=='evo':
+            initializer = initializers.RandomUniform(minval=minval, maxval=maxval)
+        else:
+            # used when demoing agents trained with DQN
+            initializer = initializers.VarianceScaling(scale=2.0, mode='fan_in', distribution='truncated_normal')
         
         self.action_shape = action_shape
 
@@ -50,6 +57,13 @@ class AtariNet(tf.keras.Sequential):
         return np.array(super().get_weights(),dtype=object)
 
 
+    def get_shifted_weights(self):
+        """
+        Returns weights shifteb using the specified minimum weight value.
+        """
+        return self.get_weights()-self.minval
+
+
     def set_weights(self,weights):
         """
         Receives an array of np.arrays, converts to a list to set as weights for the agent.
@@ -58,9 +72,23 @@ class AtariNet(tf.keras.Sequential):
 
 
     def predict(self, observation, epsilon=0):
+        """
+        Returns action with highest activation in output layer.
+        """
         activations = super().predict(observation.observation)
         if epsilon:
             if epsilon>np.random.rand():
                 return np.random.randint(self.action_shape)
         return np.argmax(activations)
 
+
+    def clip_weights(self):
+        """
+        Function clips weights outside the min-max value interval.
+        """
+        clipped_weights = []
+        for layer in self.get_weights():
+            layer = np.where(layer>self.maxval,self.maxval,layer)
+            layer = np.where(layer<self.minval,self.minval,layer)
+            clipped_weights.append(layer)
+        self.set_weights(clipped_weights)
