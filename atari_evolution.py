@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import pickle
 import sys
@@ -64,6 +65,7 @@ class AtariEvolution:
         self.k1_pc = self.evo_conf['k1_pc']
         self.k2_pc = self.evo_conf['k2_pc']
         self.k_p_mut = self.evo_conf['k_p_mut']
+        self.t_size_max = self.n_agents/6
 
         self.log = {}
         self.elite_agents = {}
@@ -393,7 +395,7 @@ class AtariEvolution:
         p_c = self._calc_pc()
         p_mut_div = ((0.4-self.spd)/0.4)*self.k_p_mut
         p_mut_fit = self._calc_p_mut_fit()
-        tour_size = int((self.hpd/0.3)*self.n_agents)
+        tour_size = math.ceil((self.hpd/0.3)*self.t_size_max)
         return p_c, p_mut_div, p_mut_fit, tour_size
 
 
