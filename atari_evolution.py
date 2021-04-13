@@ -55,6 +55,7 @@ class AtariEvolution:
         self.net_shape = None
 
         self.scores = np.zeros(self.n_agents)
+        self.highest_score = [0,0]
 
         self.spd = 0.0
         self.hpd = 0.0
@@ -65,6 +66,8 @@ class AtariEvolution:
         self.k1_pc = self.evo_conf['k1_pc']
         self.k2_pc = self.evo_conf['k2_pc']
         self.k_p_mut = self.evo_conf['k_p_mut']
+        self.spd_max = self.evo_conf['spd_max']
+        self.hpd_max = self.evo_conf['hpd_max']
         self.t_size_max = self.n_agents/6
 
         self.log = {}
@@ -131,14 +134,16 @@ class AtariEvolution:
         """
         Method for logging data from training.
         """
+        if max_score>self.highest_score[1]:
+            highest_score = [gen,max_score]
         self.log[gen]=[
             gen_time,
             self.train_frames,
             max_score,
-            list(self.scores),
             self.spd,
             self.hpd,
-            exploration_size]
+            exploration_size,
+            highest_score]
         self._write_log()
         self._write_elite_dict()
 
@@ -343,12 +348,6 @@ class AtariEvolution:
             gene_sum += (agt.get_shifted_weights()-self.spd_avg)**2
         std_gene = self._arr_sqrt(gene_sum/self.n_agents)
         spd = self._arr_sum(std_gene/self.spd_avg)/self.n_weights
-        print('\nSPD:')
-        print(spd)
-        if spd > 0.4:
-            print('SPD max exceeded\n')
-            #setting to max spd value
-            spd = 0.4
         self.spd = spd
 
 
@@ -362,18 +361,13 @@ class AtariEvolution:
             weighted_gene_sum += self.weights[i]*sq_diff
         w_std_gene = self._arr_sqrt(weighted_gene_sum)
         hpd = self._arr_sum(w_std_gene/self.hpd_avg)/self.n_weights
-        print('\nHPD:')
-        print(hpd)
-        if hpd > 0.3:
-            print('HPD max exceeded\n')
-            #setting to max hpd value
-            hpd = 0.3
         self.hpd = hpd
 
 
     def _calc_pc(self):
         "Calculates the probability of crossover given the SPD according to the ACROMUSE algorithm."
-        return ((self.spd/0.4)*(self.k2_pc-self.k1_pc))+self.k1_pc
+        spd_lim = self.spd_max if self.spd>self.spd_max else self.spd
+        return ((spd_lim/0.4)*(self.k2_pc-self.k1_pc))+self.k1_pc
 
 
     def _calc_p_mut_fit(self):
@@ -393,9 +387,11 @@ class AtariEvolution:
         self._calc_spd()
         self._calc_hpd()
         p_c = self._calc_pc()
-        p_mut_div = ((0.4-self.spd)/0.4)*self.k_p_mut
+        spd_lim = self.spd_max if self.spd>self.spd_max else self.spd
+        hpd_lim = self.hpd_max if self.hpd>self.hpd_max else self.hpd
+        p_mut_div = ((0.4-spd_lim)/0.4)*self.k_p_mut
         p_mut_fit = self._calc_p_mut_fit()
-        tour_size = math.ceil((self.hpd/0.3)*self.t_size_max)
+        tour_size = math.ceil((hpd_lim/0.3)*self.t_size_max)
         return p_c, p_mut_div, p_mut_fit, tour_size
 
 
@@ -465,7 +461,7 @@ class AtariEvolution:
                 p_mut_div,
                 p_mut_fit,
                 tour_size,
-                self.elite_agents)
+                self.elite_agents[gen-1])
             self.agents.clear()
             self.agents = new_agents
             print('Scoring ...')
@@ -485,6 +481,7 @@ class AtariEvolution:
                 p_mut_div,
                 p_mut_fit,
                 tour_size)
+            print('\nSPD: {}\nHPD: {}\n'.format(self.spd,self.hpd))
         print('\nLast generation reached.\n')
 
 

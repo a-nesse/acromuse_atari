@@ -23,7 +23,7 @@ class AtariGen:
         and selecting the n agents with highest probability.
         """
         participants = np.random.choice(
-            np.arange(len(probs)),
+            np.arange(self.n_agents),
             size,
             replace=False)
         winners = np.argpartition(probs[participants], -n)[-n:]
@@ -87,7 +87,8 @@ class AtariGen:
         n_layers = len(agents[0].get_weights())
         #carrying over elite agent(s)
         for agt in elite:
-            new_agents.append(agents[agt])
+            new_agents.append(AtariNet(self.obs_shape, self.action_shape, self.net_conf))
+            new_agents[-1].set_weights(agt.get_weights())
         exploration_size = 0
         for _ in range(len(agents)-len(elite)):
             n_parent = np.random.choice([1,2],1,p=[1-p_c,p_c])[0] #selecting whether to use crossover
