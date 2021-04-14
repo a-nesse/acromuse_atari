@@ -134,16 +134,16 @@ class AtariEvolution:
         """
         Method for logging data from training.
         """
-        if max_score>self.highest_score[1]:
-            highest_score = [gen,max_score]
-        self.log[gen]=[
+        if max_score[1]>self.highest_score[2]:
+            self.highest_score = [gen,max_score[0],max_score[1]]
+        self.log[str(gen)]=[
             gen_time,
             self.train_frames,
             max_score,
             self.spd,
             self.hpd,
             exploration_size,
-            highest_score]
+            self.highest_score]
         self._write_log()
         self._write_elite_dict()
 
@@ -185,7 +185,7 @@ class AtariEvolution:
         filepath = os.path.join(
             os.getcwd(),
             'saved_models_evo',
-            self.save_name + str(gen) + '-gen_params')
+            self.save_name + '-' + str(gen) + '-gen_params')
         with open(filepath, 'r') as f:
             params = json.load(f)
         return params
@@ -235,7 +235,8 @@ class AtariEvolution:
         Loads specified saved generation of agents and measures of that generation.
         """
         self._load_gen(gen)
-        self.scores, self.spd, self.hpd, p_c, p_mut_div, p_mut_fit, tour_size = self._load_gen_measures(gen)
+        scores, self.spd, self.hpd, p_c, p_mut_div, p_mut_fit, tour_size = self._load_gen_measures(gen)
+        self.scores = np.array(scores)
         return p_c, p_mut_div, p_mut_fit, tour_size
 
 
@@ -292,15 +293,15 @@ class AtariEvolution:
         """
         Generate scores for all agents in the generation.
         """
-        max_score = 0.0
+        max_score = (0,0)
         tot_frames = 0
         for i, agt in enumerate(self.agents):
-            print(i)
+            print(i+1)
             score_i, frames_i = self._score_agent(agt, self.n_runs)
             tot_frames += frames_i
             self.scores[i] = score_i
-            if score_i > max_score:
-                max_score = score_i
+            if score_i > max_score[1]:
+                max_score = (i,score_i)
         gen_elite_agents = np.argpartition(self.scores, -self.elite)[-self.elite:]
         print("Max score: {}".format(max_score))
         return tot_frames, max_score, [int(x) for x in gen_elite_agents]
@@ -400,8 +401,8 @@ class AtariEvolution:
         Method for restarting training from saved agent checkpoint.
         """
         self.load_log_elite()
-        gen_time = self.log[gen][0]
-        frames = self.log[gen][1]
+        gen_time = self.log[str(gen)][0]
+        frames = self.log[str(gen)][1]
         p_c, p_mut_div, p_mut_fit, tour_size = self.load_checkpoint(gen)
         return gen_time, frames, p_c, p_mut_div, p_mut_fit, tour_size
 
@@ -419,7 +420,7 @@ class AtariEvolution:
         if not restart_gen:
             #for initializing generation zero
             gen_frames, max_score, gen_elite_agents = self.generate_scores()
-            self.elite_agents[0] = gen_elite_agents
+            self.elite_agents[str(0)] = gen_elite_agents
             p_c, p_mut_div, p_mut_fit, tour_size = self.calc_measures()
             self.train_frames += gen_frames
             gen_time = time.time() - start_time
@@ -466,7 +467,7 @@ class AtariEvolution:
             self.agents = new_agents
             print('Scoring ...')
             gen_frames, max_score, gen_elite_agents = self.generate_scores()
-            self.elite_agents[gen] = gen_elite_agents
+            self.elite_agents[str(gen)] = gen_elite_agents
             p_c, p_mut_div, p_mut_fit, tour_size = self.calc_measures()
             self.train_frames += gen_frames
             gen_time = time.time() - start_time
