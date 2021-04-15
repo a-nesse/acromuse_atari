@@ -48,7 +48,7 @@ class AtariDemo:
         time_step = self.env.reset()
         score = 0.0
         while not time_step.is_last():
-            action_step = self.agent.predict(time_step,epsilon)
+            action_step = self.agent.action(time_step,epsilon)
             time_step = self.env.step(action_step)
             score += time_step.reward
             self.env.render(mode='human')

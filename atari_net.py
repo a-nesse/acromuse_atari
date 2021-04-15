@@ -68,7 +68,7 @@ class AtariNet(tf.keras.Sequential):
         super().set_weights(list(weights))
 
 
-    def predict(self, observation, epsilon=0):
+    def action(self, observation, epsilon=0):
         """
         Returns action with highest activation in output layer.
         """

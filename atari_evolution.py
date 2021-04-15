@@ -280,7 +280,7 @@ class AtariEvolution:
         for i in range(n_runs):
             obs = self.env.reset()
             while not obs.is_last():
-                action = agent.predict(obs)
+                action = agent.action(obs)
                 obs = self.env.step(action)
                 score[i] += obs.reward.numpy()[0]
                 frames += 1
