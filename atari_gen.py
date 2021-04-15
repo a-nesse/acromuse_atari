@@ -13,7 +13,6 @@ class AtariGen:
         self.action_shape = action_shape
         self.n_agents = self.evo_conf['n_agents']
         self.p_mut_loc = self.evo_conf['p_mut_loc']
-        self.sd_mut = self.evo_conf['sd_mut']
         self.k_p_mut = self.evo_conf['k_p_mut']
 
 
