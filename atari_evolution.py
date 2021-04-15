@@ -435,6 +435,7 @@ class AtariEvolution:
                 p_mut_div,
                 p_mut_fit,
                 tour_size)
+            print('\nSPD: {}\nHPD: {}\n'.format(self.spd,self.hpd))
             return gen_time, gen_frames, p_c, p_mut_div, p_mut_fit, tour_size
         else:
             print('Restarting from generation nr. {}'.format(restart_gen))
