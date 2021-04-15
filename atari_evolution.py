@@ -462,7 +462,7 @@ class AtariEvolution:
                 p_mut_div,
                 p_mut_fit,
                 tour_size,
-                self.elite_agents[gen-1])
+                self.elite_agents[str(gen-1)])
             self.agents.clear()
             self.agents = new_agents
             print('Scoring ...')
