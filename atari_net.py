@@ -53,11 +53,12 @@ class AtariNet(tf.keras.Sequential):
         return np.array(super().get_weights(),dtype=object)
 
 
-    def get_shifted_weights(self):
+    def get_scaled_weights(self):
         """
-        Returns weights shifteb using the specified minimum weight value.
+        Returns weights shifted & scaled to the range [0,1] using the specified minimum & maximum weight value.
         """
-        return self.get_weights()-self.minval
+        span = self.maxval-self.minval
+        return (self.get_weights()-self.minval)/span
 
 
     def set_weights(self,weights):

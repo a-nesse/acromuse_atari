@@ -333,10 +333,10 @@ class AtariEvolution:
         hpd_sum = self.zero_net()
         weights = []
         for i, agt in enumerate(self.agents):
-            spd_sum += agt.get_shifted_weights()
+            spd_sum += agt.get_scaled_weights()
             w_i = self.scores[i]/total_fit
             weights.append(w_i)
-            hpd_sum += w_i*agt.get_shifted_weights()
+            hpd_sum += w_i*agt.get_scaled_weights()
         self.weights = weights
         self.spd_avg = spd_sum/len(self.agents)
         self.hpd_avg = hpd_sum
@@ -346,7 +346,7 @@ class AtariEvolution:
         "Method for calculation standard population diversity."
         gene_sum = self.zero_net()
         for agt in self.agents:
-            gene_sum += (agt.get_shifted_weights()-self.spd_avg)**2
+            gene_sum += (agt.get_scaled_weights()-self.spd_avg)**2
         std_gene = self._arr_sqrt(gene_sum/self.n_agents)
         spd = self._arr_sum(std_gene/self.spd_avg)/self.n_weights
         self.spd = spd
@@ -357,7 +357,7 @@ class AtariEvolution:
         self.hpd_contrib = np.zeros(self.n_agents)
         weighted_gene_sum = self.zero_net()
         for i, agt in enumerate(self.agents):
-            sq_diff = (agt.get_shifted_weights()-self.hpd_avg)**2
+            sq_diff = (agt.get_scaled_weights()-self.hpd_avg)**2
             self.hpd_contrib[i] = self.weights[i]*np.sqrt(self._arr_sum(sq_diff))
             weighted_gene_sum += self.weights[i]*sq_diff
         w_std_gene = self._arr_sqrt(weighted_gene_sum)
