@@ -11,18 +11,14 @@ class AtariNet(tf.keras.Sequential):
     """
 
 
-    def __init__(self, input_shape, action_shape, net_conf, minval=-1, maxval=1, initializer='evo'):
+    def __init__(self, input_shape, action_shape, net_conf, minval=-1, maxval=1):
 
         super().__init__()
 
         self.minval = minval
         self.maxval = maxval
 
-        if initializer=='evo':
-            initializer = initializers.RandomUniform(minval=minval, maxval=maxval)
-        else:
-            # used when demoing agents trained with DQN
-            initializer = initializers.VarianceScaling(scale=2.0, mode='fan_in', distribution='truncated_normal')
+        initializer = initializers.RandomUniform(minval=minval, maxval=maxval)
         
         self.action_shape = action_shape
 
