@@ -55,7 +55,7 @@ class AtariEvolution:
         self.net_shape = None
 
         self.scores = np.zeros(self.n_agents)
-        self.highest_score = [0,0]
+        self.highest_score = [0,0,0]
 
         self.spd = 0.0
         self.hpd = 0.0
