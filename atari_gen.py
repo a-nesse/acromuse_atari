@@ -45,7 +45,7 @@ class AtariGen:
         Weights chosen with given mutation rate.
         """
         mut = np.random.random_sample(arr.shape)<p
-        mut_val = np.random.normal(0.0,self.sd_mut,arr.shape)
+        mut_val = np.random.uniform(low=-1,high=1,size=arr.shape)
         return arr + (mut_val*mut)
 
 
