@@ -23,7 +23,7 @@ class AtariGen:
         """
         participants = np.random.choice(
             np.arange(self.n_agents),
-            size,
+            size=size,
             replace=False)
         winners = np.argpartition(probs[participants], -n)[-n:]
         return participants[winners]
@@ -79,9 +79,9 @@ class AtariGen:
 
 
     def new_gen(self,agents,probs,p_c,p_mut_div,p_mut_fit,tour_size,elite,clip=True):
-        '''
+        """
         Function for creating new generation of agents.
-        '''
+        """
         new_agents = []
         n_layers = len(agents[0].get_weights())
         #carrying over elite agent(s)
