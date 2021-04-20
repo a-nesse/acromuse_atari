@@ -18,11 +18,11 @@ class AtariGen:
 
     def _tournament(self,probs,n,size):
         """
-        Runs tournament by randomly considering a given number of agents randomly chosen from the population, 
+        Runs tournament by randomly considering a given number of agents randomly chosen from the population,
         and selecting the n agents with highest probability.
         """
         participants = np.random.choice(
-            np.arange(self.n_agents),
+            self.n_agents,
             size=size,
             replace=False)
         winners = np.argpartition(probs[participants], -n)[-n:]
@@ -35,7 +35,7 @@ class AtariGen:
         """
         sel1 = np.random.randint(0,2,arr1.shape,dtype=bool)
         sel2 = ~sel1
-        return np.zeros(arr1.shape) + (arr1*sel1) + (arr2*sel2)
+        return (arr1*sel1) + (arr2*sel2)
 
 
     def _mutate(self,arr,p):
@@ -44,8 +44,9 @@ class AtariGen:
         Weights chosen with given mutation rate.
         """
         mut = np.random.random_sample(arr.shape)<p
+        no_mut = ~mut
         mut_val = np.random.uniform(low=-1,high=1,size=arr.shape)
-        return arr + (mut_val*mut)
+        return (no_mut*arr) + (mut*mut_val)
 
 
     def _create_offspring(self,agents,parent,n_layers,p_mut,clip):
@@ -57,7 +58,7 @@ class AtariGen:
         if n_parent == 2:
             for i in range(n_layers):
                 nlw = self._uniform(agents[parent[0]].get_weights()[i], agents[parent[1]].get_weights()[i])
-                n_w.append(self._mutate(nlw,self.p_mut_loc))
+                n_w.append(self._mutate(nlw,p_mut))
         else:
             for i in range(n_layers):
                 n_w.append(self._mutate(agents[parent[0]].get_weights()[i],p_mut))
@@ -73,12 +74,12 @@ class AtariGen:
         Calculate the mutation rate.
         """
         if len(parent)==2:
-            return 0
+            return self.p_mut_loc
         else:
             return (p_mut_fit[int(parent[0])]+p_mut_div)/2
 
 
-    def new_gen(self,agents,probs,p_c,p_mut_div,p_mut_fit,tour_size,elite,clip=True):
+    def new_gen(self,agents,probs,p_c,p_mut_div,p_mut_fit,tour_size,elite,clip=False):
         """
         Function for creating new generation of agents.
         """
