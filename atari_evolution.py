@@ -76,26 +76,26 @@ class AtariEvolution:
         self.n_weights = 0
 
 
-    def _save_model(self, agent, gen, nr):
+    def _save_model(self, agent, gen, num):
         """
         Method for saving agent.
         """
         filepath = os.path.join(
             os.getcwd(),
             'saved_models_evo',
-            self.save_name + '-' + str(gen) + '-' + str(nr))
+            self.save_name + '-' + str(gen) + '-' + str(num))
         with open(filepath, 'wb') as f:
             pickle.dump(agent.get_weights(), f)
 
 
-    def _load_model(self, gen, nr):
+    def _load_model(self, gen, num):
         """
         Method for loading agent.
         """
         filepath = os.path.join(
             os.getcwd(),
             'saved_models_evo',
-            self.save_name + '-' + str(gen) + '-' + str(nr))
+            self.save_name + '-' + str(gen) + '-' + str(num))
         with open(filepath, 'rb') as f:
             agent = pickle.load(f)
         return agent
@@ -271,7 +271,7 @@ class AtariEvolution:
 
     def _score_agent(self, agent, n_runs):
         """
-        Score one agent on the environment. 
+        Score one agent on the environment.
         Returns the median score.
         """
         score = 0.0
