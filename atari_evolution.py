@@ -70,7 +70,9 @@ class AtariEvolution:
         self.k1_pc = self.evo_conf['k1_pc']
         self.k2_pc = self.evo_conf['k2_pc']
         self.k_p_mut = self.evo_conf['k_p_mut']
-        self.spd_max = self.evo_conf['spd_max']
+        # SPD & HPD max standard values used in ACROMUSE paper
+        # is replaced with max values seen during evolution
+        self.spd_max = self.evo_conf['spd_max'] 
         self.hpd_max = self.evo_conf['hpd_max']
         self.t_size_max = self.n_agents/6
 
@@ -376,6 +378,9 @@ class AtariEvolution:
         std_gene = self._arr_sqrt(gene_sum/self.n_agents)
         spd = self._arr_sum(std_gene/self.spd_avg)/self.n_weights
         self.spd = spd
+        if spd > self.spd_max:
+            # setting the max to the highest seen SPD vlaue
+            self.spd_max = spd
 
 
     def _calc_hpd(self):
@@ -389,6 +394,9 @@ class AtariEvolution:
         w_std_gene = self._arr_sqrt(weighted_gene_sum)
         hpd = self._arr_sum(w_std_gene/self.hpd_avg)/self.n_weights
         self.hpd = hpd
+        if hpd > self.hpd_max:
+            # setting the max to the highest seen HPD vlaue
+            self.hpd_max = hpd
 
 
     def _calc_pc(self):
