@@ -39,6 +39,7 @@ from tf_agents.typing import types
 
 #from tf_agents.environments import atari_preprocessing
 from preprocessing import atari_preprocessing_evo
+from dqn_implementation.preprocessing import atari_preprocessing_eval
 
 # The following is just AtariPreprocessing with frame stacking. Performance wise
 # it's much better to have stacking implemented as part of replay-buffer/agent.
@@ -46,8 +47,12 @@ from preprocessing import atari_preprocessing_evo
 # wrappers will be removed.
 EVO_ATARI_GYM_WRAPPERS_WITH_STACKING = (atari_preprocessing_evo.AtariPreprocessing,) + \
     (atari_wrappers.FrameStack4,)
+EVAL_ATARI_GYM_WRAPPERS_WITH_STACKING = (atari_preprocessing_eval.AtariPreprocessing,) + \
+    (atari_wrappers.FrameStack4,)
 gin.constant('EVO_ATARI_GYM_WRAPPERS_WITH_STACKING',
              EVO_ATARI_GYM_WRAPPERS_WITH_STACKING)
+gin.constant('EVAL_ATARI_GYM_WRAPPERS_WITH_STACKING',
+             EVAL_ATARI_GYM_WRAPPERS_WITH_STACKING)
 
 @gin.configurable
 def game(name: Text = 'Pong', obs_type: Text = 'image', mode: Text = 'NoFrameskip', version: Text = 'v0') -> Text:
@@ -76,11 +81,15 @@ def load(
         gym_env_wrappers: Sequence[
             types.GymEnvWrapper] = EVO_ATARI_GYM_WRAPPERS_WITH_STACKING,
         env_wrappers: Sequence[types.PyEnvWrapper] = (),
-        spec_dtype_map: Optional[Dict[gym.Space, np.dtype]] = None
+        spec_dtype_map: Optional[Dict[gym.Space, np.dtype]] = None,
+        eval_env: bool = False
 ) -> py_environment.PyEnvironment:
     """Loads the selected environment and wraps it with the specified wrappers."""
     if spec_dtype_map is None:
         spec_dtype_map = {gym.spaces.Box: np.float32}
+    
+    if eval_env:
+        gym_env_wrappers = EVAL_ATARI_GYM_WRAPPERS_WITH_STACKING
 
     environment_name = game(
         name=environment_name,

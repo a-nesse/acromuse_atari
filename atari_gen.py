@@ -85,12 +85,11 @@ class AtariGen:
         """
         new_agents = []
         n_layers = len(agents[0].get_weights())
-        #carrying over elite agent(s)
-        for agt in elite:
-            new_agents.append(AtariNet(self.obs_shape, self.action_shape, self.net_conf))
-            new_agents[-1].set_weights(agents[agt].get_weights())
+        #carrying over elite agent
+        new_agents.append(AtariNet(self.obs_shape, self.action_shape, self.net_conf))
+        new_agents[-1].set_weights(agents[elite].get_weights())
         exploration_size = 0
-        for _ in range(len(agents)-len(elite)):
+        for _ in range(len(agents)-1):
             n_parent = np.random.choice([1,2],1,p=[1-p_c,p_c])[0] #selecting whether to use crossover
             exploration_size += int(2-n_parent) #counting members of exploration population
             parent = self._tournament(probs,n_parent,tour_size)
