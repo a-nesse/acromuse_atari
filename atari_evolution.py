@@ -307,7 +307,7 @@ class AtariEvolution:
         else:
             # use median score for ranking agents
             agt_score = np.median(scores)
-        return agt_score, max_ep_score, steps
+        return float(agt_score), float(max_ep_score), int(steps)
 
 
     def generate_scores(self):
@@ -321,7 +321,7 @@ class AtariEvolution:
             tot_steps += steps_i
             self.scores[i] = score_i
         
-        gen_elite_agent = np.argmax(self.scores)
+        gen_elite_agent = int(np.argmax(self.scores))
         return tot_steps, gen_elite_agent
 
 
