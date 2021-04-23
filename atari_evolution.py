@@ -316,11 +316,11 @@ class AtariEvolution:
         """
         tot_steps= 0
         for i, agt in enumerate(self.agents):
-            print('Scoring agent {}...'.format(i+1))
+            print('Scoring agent {}...  '.format(i+1))
             score_i, _, steps_i = self._score_agent(self.rank_env, agt, self.n_runs)
             tot_steps += steps_i
             self.scores[i] = score_i
-        
+            print(score_i)
         gen_elite_agent = int(np.argmax(self.scores))
         return tot_steps, gen_elite_agent
 
