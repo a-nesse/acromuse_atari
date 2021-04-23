@@ -297,6 +297,7 @@ class AtariEvolution:
         if eval_elite:
             # using average score for evaluation of elite
             agt_score = np.average(scores)
+            print('\nEvaluation step count: {}\n'.format(steps))
         else:
             # use median score for ranking agents
             agt_score = np.median(scores)
