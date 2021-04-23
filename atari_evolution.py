@@ -42,16 +42,12 @@ class AtariEvolution:
 
         self.save_name = self.evo_conf['save_name']
 
-        # environment for ranking agents
-        self.rank_py_env = suite_atari.load(environment_name=self.env_name)
-        self.rank_env = tf_py_environment.TFPyEnvironment(self.rank_py_env)
+        # environment for ranking agents & evaluating elite
+        self.py_env = suite_atari.load(environment_name=self.env_name, eval_env=True)
+        self.env = tf_py_environment.TFPyEnvironment(self.py_env)
 
-        # environment for evaluating generation elite
-        self.eval_py_env = suite_atari.load(environment_name=self.env_name, eval_env=True)
-        self.eval_env = tf_py_environment.TFPyEnvironment(self.eval_py_env)
-
-        self.obs_shape = tuple(self.rank_env.observation_spec().shape)
-        self.action_shape = self.rank_env.action_spec().maximum - self.rank_env.action_spec().minimum + 1
+        self.obs_shape = tuple(self.env.observation_spec().shape)
+        self.action_shape = self.env.action_spec().maximum - self.env.action_spec().minimum + 1
 
         self.evo = AtariGen(self.evo_conf,self.net_conf,self.obs_shape,self.action_shape)
 
@@ -81,7 +77,7 @@ class AtariEvolution:
         self.n_weights = 0
 
         self.n_eval_runs = self.evo_conf['n_eval_runs']
-        self.eval_epsilon = self.evo_conf['eval_epsilon']
+        self.epsilon = self.evo_conf['epsilon']
 
 
     def _save_model(self, agent, gen, num):
@@ -282,7 +278,7 @@ class AtariEvolution:
         self.n_weights = n_weights
 
 
-    def _score_agent(self, env, agent, n_runs, eval_elite=False):
+    def _score_agent(self, agent, n_runs, eval_elite=False):
         """
         Score one agent on the environment.
         Returns the median score.
@@ -290,16 +286,13 @@ class AtariEvolution:
         steps = 0
         scores = np.zeros(n_runs)
         max_ep_score = 0.0
-        # setting epsilon if evaluating
-        epsilon = self.eval_epsilon if eval_elite else 0
         for i in range(n_runs):
-            obs = env.reset()
+            obs = self.env.reset()
             while not obs.is_last():
-                action = agent.action(obs,epsilon=epsilon)
-                obs = env.step(action)
+                action = agent.action(obs,epsilon=self.epsilon)
+                obs = self.env.step(action)
                 scores[i] += obs.reward.numpy()[0]
                 steps += 1
-            #self.evo_py_env.close()
         max_ep_score = np.max(scores)
         if eval_elite:
             # using average score for evaluation of elite
@@ -317,7 +310,7 @@ class AtariEvolution:
         tot_steps= 0
         for i, agt in enumerate(self.agents):
             print('Scoring agent {}...  '.format(i+1))
-            score_i, _, steps_i = self._score_agent(self.rank_env, agt, self.n_runs)
+            score_i, _, steps_i = self._score_agent(agt, self.n_runs)
             tot_steps += steps_i
             self.scores[i] = score_i
             print(score_i)
@@ -329,7 +322,7 @@ class AtariEvolution:
         """
         Function to run evaluation of elite agent.
         """
-        avg_score, max_score, _ = self._score_agent(self.eval_env,self.agents[elite_agent],self.n_eval_runs,eval_elite=True)
+        avg_score, max_score, _ = self._score_agent(self.agents[elite_agent],self.n_eval_runs,eval_elite=True)
         print('Elite agent evaluation:\nAverage score: {}\nMax episode score: {}\n'.format(avg_score,max_score))
         return avg_score, max_score
 
