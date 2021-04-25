@@ -53,6 +53,8 @@ class AtariEvolution:
 
         self.agents = []
         self.net_shape = None
+        self.minval = self.evo_conf['net_minval']
+        self.maxval = self.evo_conf['net_maxval']
 
         self.scores = np.zeros(self.n_agents)
         self.highest_score = [[0,0,0],[0,0,0]]
@@ -440,7 +442,7 @@ class AtariEvolution:
         """
         self.agents = []
         for _ in range(self.n_agents):
-            self.agents.append(AtariNet(self.obs_shape, self.action_shape, self.net_conf))
+            self.agents.append(AtariNet(self.obs_shape, self.action_shape, self.net_conf, minval=self.minval, maxval=self.maxval))
         #saving network shape & number of genes
         self._save_net_shape()
         self._calc_n_weights()

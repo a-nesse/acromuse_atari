@@ -14,6 +14,8 @@ class AtariGen:
         self.n_agents = self.evo_conf['n_agents']
         self.p_mut_loc = self.evo_conf['p_mut_loc']
         self.k_p_mut = self.evo_conf['k_p_mut']
+        self.minval = self.evo_conf['net_minval']
+        self.maxval = self.evo_conf['net_maxval']
 
 
     def _tournament(self,probs,n,size):
@@ -45,7 +47,7 @@ class AtariGen:
         """
         mut = np.random.random_sample(arr.shape)<p
         no_mut = ~mut
-        mut_val = np.random.uniform(low=-1,high=1,size=arr.shape)
+        mut_val = np.random.uniform(low=self.minval,high=self.maxval,size=arr.shape)
         return (no_mut*arr) + (mut*mut_val)
 
 
@@ -62,7 +64,7 @@ class AtariGen:
         else:
             for i in range(n_layers):
                 n_w.append(self._mutate(agents[parent[0]].get_weights()[i],p_mut))
-        offspring = AtariNet(self.obs_shape, self.action_shape, self.net_conf)
+        offspring = AtariNet(self.obs_shape, self.action_shape, self.net_conf, minval=self.minval,maxval=self.maxval)
         offspring.set_weights(n_w)
         if clip:
             offspring.clip_weights()
@@ -85,13 +87,13 @@ class AtariGen:
         """
         new_agents = []
         n_layers = len(agents[0].get_weights())
-        #carrying over elite agent
+        # carrying over elite agent
         new_agents.append(AtariNet(self.obs_shape, self.action_shape, self.net_conf))
         new_agents[-1].set_weights(agents[elite].get_weights())
         exploration_size = 0
         for _ in range(len(agents)-1):
-            n_parent = np.random.choice([1,2],1,p=[1-p_c,p_c])[0] #selecting whether to use crossover
-            exploration_size += int(2-n_parent) #counting members of exploration population
+            n_parent = np.random.choice([1,2],1,p=[1-p_c,p_c])[0] # selecting whether to use crossover
+            exploration_size += int(2-n_parent) # counting members of exploration population
             parent = self._tournament(probs,n_parent,tour_size)
             p_mut = self._calc_p_mut(parent,p_mut_div,p_mut_fit)
             offspring = self._create_offspring(agents,parent,n_layers,p_mut,clip)
