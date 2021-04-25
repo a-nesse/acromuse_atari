@@ -61,8 +61,7 @@ class AtariDQN:
         self.q_net = q_network.QNetwork(
             self.obs_spec,
             self.action_spec,
-            conv_layer_params=[tuple(c)
-                               for c in self.net_conf['conv_layer_params']],
+            conv_layer_params=[tuple(c) for c in self.net_conf['conv_layer_params']],
             fc_layer_params=tuple(self.net_conf['fc_layer_params']),
             kernel_initializer=tf.keras.initializers.VarianceScaling(scale=2.0, mode='fan_in', distribution='truncated_normal'))
 
