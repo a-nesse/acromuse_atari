@@ -3,6 +3,7 @@ import json
 import os
 import pickle
 import sys
+import numpy as np
 
 import tensorflow as tf
 
@@ -43,7 +44,7 @@ class AtariDQN:
         self.target_update = self.dqn_conf['target_update']
         self.learning_rate = self.dqn_conf['learning_rate']
         self.log_interval = self.dqn_conf['log_interval']
-        self.num_eval_episodes = self.dqn_conf['num_eval_episodes']
+        self.n_eval_steps = self.dqn_conf['n_eval_steps']
         self.eval_interval = self.dqn_conf['eval_interval']
 
         self.train_py_env = suite_atari.load(
@@ -111,6 +112,7 @@ class AtariDQN:
         self.replay_ckp = None
         self.driver = None
 
+
     def act(self, obs):
         '''
         Method for predicting action.
@@ -118,33 +120,37 @@ class AtariDQN:
         '''
         return self.eval_policy.action(obs)
 
-    def compute_avg_score(self):
+    
+    def run_episode(self,steps):
         """
-        Function adapted from https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial tutorial.
+        Function for running an episode in the environment.
+        Returns the score if the episode is finished without
+        exceeding the number of evaluation steps.
         """
-        total_score = 0.0
-        max_score = 0.0
+        episode_score = 0.0
+        time_step = self.eval_env.reset()
+        while not time_step.is_last():
+            action_step = self.act(time_step)
+            time_step = self.eval_env.step(action_step.action)
+            episode_score += time_step.reward.numpy()[0]
+            steps += 1
+            if steps > self.n_eval_steps:
+                return True, None, None
+        return False, steps, episode_score
+
+
+    def evaluate_agent(self):
+        """
+        Function for evaluating/scoring agent. 
+        """
         steps = 0
-        avg_q_value = 0.0
-        for _ in range(self.num_eval_episodes):
+        scores = []
+        while True:
+            done, steps, ep_score = self.run_episode(steps)
+            if done:
+                return np.average(scores), np.max(scores)
+            scores.append(ep_score)
 
-            time_step = self.eval_env.reset()
-            episode_score = 0.0
-
-            while not time_step.is_last():
-                action_step = self.act(time_step)
-                avg_q_value += action_step.info.log_probability.numpy()[0]
-                time_step = self.eval_env.step(action_step.action)
-                episode_score += time_step.reward.numpy()[0]
-                steps += 1
-
-            total_score += episode_score
-            if episode_score > max_score:
-                max_score = episode_score
-
-        avg_score = total_score / self.num_eval_episodes
-        avg_q_value = avg_q_value / steps
-        return avg_score, max_score, avg_q_value
 
     def save_model(self, step):
         """
@@ -163,6 +169,7 @@ class AtariDQN:
         delete = step-(self.eval_interval*self.keep_n_models)
         if delete > 0 and self.elite_avg[0] != delete and self.elite_max[0] != delete:
             self.delete_model(delete)
+
 
     def load_model(self, step):
         """
@@ -184,6 +191,7 @@ class AtariDQN:
         self.q_net.set_weights(new_weights)
         self.agent._target_q_network.set_weights(new_target)
 
+
     def delete_model(self, step):
         """
         Function for deleting agent.
@@ -193,7 +201,8 @@ class AtariDQN:
         os.remove(os.path.join(os.getcwd(), 'saved_models',
                                self.save_name + '-' + str(step) + '-target'))
 
-    def log_data(self, starttime, passed_time, step, loss, avg_score, max_score, avg_q_value):
+
+    def log_data(self, starttime, passed_time, step, loss, avg_score, max_score):
         """
         Function for logging training performance.
         """
@@ -219,8 +228,8 @@ class AtariDQN:
                 if delete < keep and delete != 0 and delete != self.elite_avg[0]:
                     self.delete_model(delete)
 
-        self.log[step] = [train_time, loss, avg_score, max_score,
-                          avg_q_value, frames, self.elite_avg, self.elite_max]
+        self.log[step] = [train_time, loss, avg_score, max_score, frames, self.elite_avg, self.elite_max]
+
 
     def write_log(self):
         """
@@ -231,6 +240,7 @@ class AtariDQN:
         with open(filepath, 'w') as f:
             json.dump(self.log, f)
 
+
     def load_log(self, step):
         """
         Function for loading log.
@@ -240,8 +250,9 @@ class AtariDQN:
         with open(filepath, 'r') as f:
             log = json.load(f)
         self.log = log
-        self.elite_avg = (log[str(step)][6][0], log[str(step)][6][1])
-        self.elite_max = (log[str(step)][7][0], log[str(step)][7][1])
+        self.elite_avg = (log[str(step)][5][0], log[str(step)][5][1])
+        self.elite_max = (log[str(step)][6][0], log[str(step)][6][1])
+
 
     def restart_training(self, step):
         """
@@ -249,6 +260,7 @@ class AtariDQN:
         """
         self.load_model(step)
         self.load_log(step)
+
 
     def train(self, restart_step=0):
         """
@@ -313,9 +325,8 @@ class AtariDQN:
         if restart_step:
             avg_score = self.log[str(restart_step)][2]
             max_score = self.log[str(restart_step)][3]
-            avg_q = self.log[str(restart_step)][4]
         else:
-            avg_score, max_score, avg_q = self.compute_avg_score()
+            avg_score, max_score = self.evaluate_agent()
 
         exploration_finished = False
 
@@ -347,14 +358,14 @@ class AtariDQN:
             if step % self.eval_interval == 0 and step != restart_step:
                 self.save_model(step)
                 self.replay_ckp.save(global_step=step)
-                avg_score, max_score, avg_q = self.compute_avg_score()
+                avg_score, max_score = self.evaluate_agent()
                 print('step = {}: Average Score = {} Max Score = {}'.format(
                     step, avg_score, max_score))
 
             if step % self.log_interval == 0:
                 print(time.time()-start_time)
                 self.log_data(start_time, passed_time, step,
-                              train_loss, avg_score, max_score, avg_q)
+                              train_loss, avg_score, max_score)
                 if step % self.eval_interval == 0:
                     self.write_log()
                 print('step = {}: loss = {}'.format(step, train_loss))
