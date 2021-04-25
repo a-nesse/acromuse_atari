@@ -77,15 +77,3 @@ class AtariNet(tf.keras.Sequential):
             if epsilon>np.random.rand():
                 return np.random.randint(self.action_shape)
         return np.argmax(activations)
-
-
-    def clip_weights(self):
-        """
-        Function clips weights outside the min-max value interval.
-        """
-        clipped_weights = []
-        for layer in self.get_weights():
-            layer = np.where(layer>self.maxval,self.maxval,layer)
-            layer = np.where(layer<self.minval,self.minval,layer)
-            clipped_weights.append(layer)
-        self.set_weights(clipped_weights)

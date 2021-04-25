@@ -51,7 +51,7 @@ class AtariGen:
         return (no_mut*arr) + (mut*mut_val)
 
 
-    def _create_offspring(self,agents,parent,n_layers,p_mut,clip):
+    def _create_offspring(self,agents,parent,n_layers,p_mut):
         """
         Function to create offpsring.
         """
@@ -66,8 +66,6 @@ class AtariGen:
                 n_w.append(self._mutate(agents[parent[0]].get_weights()[i],p_mut))
         offspring = AtariNet(self.obs_shape, self.action_shape, self.net_conf, minval=self.minval,maxval=self.maxval)
         offspring.set_weights(n_w)
-        if clip:
-            offspring.clip_weights()
         return offspring
 
 
@@ -81,7 +79,7 @@ class AtariGen:
             return (p_mut_fit[int(parent[0])]+p_mut_div)/2
 
 
-    def new_gen(self,agents,probs,p_c,p_mut_div,p_mut_fit,tour_size,elite,clip=False):
+    def new_gen(self,agents,probs,p_c,p_mut_div,p_mut_fit,tour_size,elite):
         """
         Function for creating new generation of agents.
         """
@@ -96,7 +94,7 @@ class AtariGen:
             exploration_size += int(2-n_parent) # counting members of exploration population
             parent = self._tournament(probs,n_parent,tour_size)
             p_mut = self._calc_p_mut(parent,p_mut_div,p_mut_fit)
-            offspring = self._create_offspring(agents,parent,n_layers,p_mut,clip)
+            offspring = self._create_offspring(agents,parent,n_layers,p_mut)
             new_agents.append(offspring)
         return new_agents, exploration_size
 
