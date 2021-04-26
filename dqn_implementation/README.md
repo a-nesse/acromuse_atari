@@ -1,6 +1,6 @@
 # DQN Implementation
 
-To run this DQN implementation, navigate to the parent directory and run the command: ```python -m dqn_implementation.atari_dqn.py```
+To run this DQN implementation, navigate to the parent directory and run the command `python -m dqn_implementation.atari_dqn.py`.
 
 This is an attempt at implementing the deep-Q network approach to playing Atari games, described in the paper "Playing Atari with Deep Reinforcement Learning" (Mnih et.al 2013).
 
