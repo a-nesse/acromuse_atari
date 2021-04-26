@@ -286,16 +286,17 @@ class AtariEvolution:
         Returns the score if the episode is finished without
         exceeding the number of evaluation steps.
         """
+        ep_steps = steps
         episode_score = 0.0
         obs = self.env.reset()
         while not obs.is_last():
             action = agent.action(obs,epsilon=self.epsilon)
             obs = self.env.step(action)
             episode_score += obs.reward.numpy()[0]
-            steps += 1
-            if steps > max_steps:
-                return True, None, None
-        return False, steps, episode_score
+            ep_steps += 1
+            if ep_steps > max_steps:
+                return True, steps, None
+        return False, ep_steps, episode_score
 
 
     def _score_agent(self, agent, max_steps, eval_elite=False):
@@ -312,13 +313,12 @@ class AtariEvolution:
             if done:
                 break
             scores.append(ep_score)
-
+        
         max_ep_score = np.max(scores)
 
         if eval_elite:
             # using average score for evaluation of elite
             agt_score = np.average(scores)
-            print('\nEvaluation step count: {}\n'.format(steps))
         else:
             # use median score for ranking agents
             agt_score = np.median(scores)
