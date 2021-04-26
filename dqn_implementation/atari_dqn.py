@@ -15,7 +15,8 @@ from tf_agents.drivers import dynamic_step_driver
 from tf_agents.utils import common
 from tf_agents.policies import epsilon_greedy_policy
 
-import preprocessing.suite_atari_mod as suite_atari
+sys.path.append("..")
+from preprocessing import suite_atari_mod as suite_atari
 
 
 class AtariDQN:
