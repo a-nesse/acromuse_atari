@@ -147,7 +147,7 @@ Raises:
             # We bypass the Gym observation altogether and directly fetch the
             # grayscale image from the ALE. This is a little faster.
             _, reward, game_over, info = self.env.step(action)
-            # normalizing rewards to -1, 0, 1 if training env
+            # clipping rewards between -1, 1 for training env
             reward = 1.0 if reward > 1.0 else reward
             reward = -1.0 if reward < -1.0 else reward
             accumulated_reward += reward
