@@ -119,7 +119,7 @@ class AtariDQN:
         return self.eval_policy.action(obs)
 
     
-    def run_episode(self,steps):
+    def run_episode(self,steps,first=False):
         """
         Function for running an episode in the environment.
         Returns the score if the episode is finished without
@@ -143,6 +143,12 @@ class AtariDQN:
         """
         steps = 0
         scores = []
+
+        # run once outside loop in unlikely case first episode lasts
+        # for all the evaluation frames
+        done, steps, ep_score = self.run_episode(steps)
+        scores.append(ep_score)
+        
         while True:
             done, steps, ep_score = self.run_episode(steps)
             if done:
