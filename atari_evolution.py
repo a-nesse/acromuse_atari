@@ -545,7 +545,7 @@ def main(restart_gen):
     Main function runs evolution using the config files.
     """
     net_path=os.path.abspath(os.path.join('configs','net.config'))
-    evo_path=os.path.abspath(os.path.join('configs','evo_preset.config'))
+    evo_path=os.path.abspath(os.path.join('configs','acromuse.config'))
     evolver = AtariEvolution(net_path,evo_path)
     if not os.path.isdir(os.path.join(os.getcwd(),'saved_models_evo')):
         os.makedirs(os.path.join(os.getcwd(),'saved_models_evo'))

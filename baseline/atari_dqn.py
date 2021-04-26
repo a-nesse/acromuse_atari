@@ -15,7 +15,6 @@ from tf_agents.drivers import dynamic_step_driver
 from tf_agents.utils import common
 from tf_agents.policies import epsilon_greedy_policy
 
-#from preprocessing import suite_atari_mod as suite_atari
 from preprocessing import suite_atari_mod as suite_atari
 
 
@@ -376,7 +375,7 @@ def main(step):
     '''
     net_conf = os.path.abspath(os.path.join('..', 'configs', 'net.config'))
     dqn_conf = os.path.abspath(os.path.join(
-        '..', 'configs', 'dqn_preset.config'))
+        '..', 'configs', 'dqn.config'))
     dqn = AtariDQN(net_conf, dqn_conf)
     if not os.path.isdir(os.path.join(os.getcwd(), 'saved_models_dqn')):
         os.makedirs(os.path.join(os.getcwd(), 'saved_models_dqn'))
