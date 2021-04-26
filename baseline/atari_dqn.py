@@ -157,11 +157,11 @@ class AtariDQN:
         Saves both q network and target network.
         """
         filepath_q = os.path.join(
-            os.getcwd(), 'saved_models', self.save_name + '-' + str(step) + '-eval')
+            os.getcwd(), 'saved_models_dqn', self.save_name + '-' + str(step) + '-eval')
         with open(filepath_q, 'wb') as f:
             pickle.dump(self.q_net.get_weights(), f)
         filepath_target = os.path.join(
-            os.getcwd(), 'saved_models', self.save_name + '-' + str(step) + '-target')
+            os.getcwd(), 'saved_models_dqn', self.save_name + '-' + str(step) + '-target')
         with open(filepath_target, 'wb') as f:
             pickle.dump(self.agent._target_q_network.get_weights(), f)
         # deleting old agents
@@ -175,11 +175,11 @@ class AtariDQN:
         Method for loading q & target network.
         """
         filepath_q = os.path.join(
-            os.getcwd(), 'saved_models', self.save_name + '-' + str(step) + '-eval')
+            os.getcwd(), 'saved_models_dqn', self.save_name + '-' + str(step) + '-eval')
         with open(filepath_q, 'rb') as f:
             new_weights = pickle.load(f)
         filepath_target = os.path.join(
-            os.getcwd(), 'saved_models', self.save_name + '-' + str(step) + '-target')
+            os.getcwd(), 'saved_models_dqn', self.save_name + '-' + str(step) + '-target')
         with open(filepath_target, 'rb') as f:
             new_target = pickle.load(f)
         frames = int(step*self.batch_size*4)
@@ -195,9 +195,9 @@ class AtariDQN:
         """
         Function for deleting agent.
         """
-        os.remove(os.path.join(os.getcwd(), 'saved_models',
+        os.remove(os.path.join(os.getcwd(), 'saved_models_dqn',
                                self.save_name + '-' + str(step) + '-eval'))
-        os.remove(os.path.join(os.getcwd(), 'saved_models',
+        os.remove(os.path.join(os.getcwd(), 'saved_models_dqn',
                                self.save_name + '-' + str(step) + '-target'))
 
 
@@ -235,7 +235,7 @@ class AtariDQN:
         Function for writing log.
         """
         filepath = os.path.join(
-            os.getcwd(), 'saved_models', self.save_name + 'log')
+            os.getcwd(), 'saved_models_dqn', self.save_name + 'log')
         with open(filepath, 'w') as f:
             json.dump(self.log, f)
 
@@ -245,7 +245,7 @@ class AtariDQN:
         Function for loading log.
         """
         filepath = os.path.join(
-            os.getcwd(), 'saved_models', self.save_name + 'log')
+            os.getcwd(), 'saved_models_dqn', self.save_name + 'log')
         with open(filepath, 'r') as f:
             log = json.load(f)
         self.log = log
@@ -277,7 +277,7 @@ class AtariDQN:
 
         self.replay_ckp = common.Checkpointer(
             ckpt_dir=os.path.join(
-                os.getcwd(), 'saved_models', self.save_name + 'replay'),
+                os.getcwd(), 'saved_models_dqn', self.save_name + 'replay'),
             max_to_keep=1,
             replay_buffer=self.replay_buffer)
 
@@ -378,8 +378,8 @@ def main(step):
     dqn_conf = os.path.abspath(os.path.join(
         '..', 'configs', 'dqn_preset.config'))
     dqn = AtariDQN(net_conf, dqn_conf)
-    if not os.path.isdir(os.path.join(os.getcwd(), 'saved_models')):
-        os.makedirs(os.path.join(os.getcwd(), 'saved_models'))
+    if not os.path.isdir(os.path.join(os.getcwd(), 'saved_models_dqn')):
+        os.makedirs(os.path.join(os.getcwd(), 'saved_models_dqn'))
     dqn.train(step)
 
 
