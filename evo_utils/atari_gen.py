@@ -97,10 +97,3 @@ class AtariGen:
             offspring = self._create_offspring(agents,parent,n_layers,p_mut)
             new_agents.append(offspring)
         return new_agents, exploration_size
-
-
-def main():
-    pass
-
-if __name__ == "__main__":
-    main()
