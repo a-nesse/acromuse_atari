@@ -1,5 +1,7 @@
 # DQN Implementation
 
+To run this DQN implementation, navigate to the parent directory and run the command: ```python -m dqn_implementation.atari_dqn.py```
+
 This is an attempt at implementing the deep-Q network approach to playing Atari games, described in the paper "Playing Atari with Deep Reinforcement Learning" (Mnih et.al 2013).
 
 The implementation was made with the purpose of comparing the developed genetic algorithm within the TensorFlow framework. The implementation employs the TensorFlow Agents library, which contains a deep Q agent, step driver and replay buffer used in the DQN class.
