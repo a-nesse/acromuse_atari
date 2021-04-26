@@ -72,8 +72,7 @@ class AtariNet(tf.keras.Sequential):
         """
         Returns action with highest activation in output layer.
         """
+        if epsilon and epsilon>np.random.rand():
+            return np.random.randint(self.action_shape)
         activations = super().predict(observation.observation)
-        if epsilon:
-            if epsilon>np.random.rand():
-                return np.random.randint(self.action_shape)
         return np.argmax(activations)
