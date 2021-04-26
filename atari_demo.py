@@ -1,17 +1,9 @@
-import numpy as np
-import gym
-import time
-import json
 import os
-import pickle
-import time
-import sys
 
-import tensorflow as tf
-
-from atari_net import AtariNet
-from preprocessing import suite_atari_mod as suite_atari
 from tf_agents.environments import tf_py_environment
+from evo_utils.atari_net import AtariNet
+from preprocessing import suite_atari_mod as suite_atari
+
 
 class AtariDemo:
     """
@@ -22,7 +14,7 @@ class AtariDemo:
         def _load_config(conf_path):
             try:
                 assert os.path.exists(conf_path)
-            except:
+            except IOError:
                 print('The config file specified does not exist.')
             with open(conf_path, 'r') as f:
                 conf = json.load(f)
@@ -39,10 +31,12 @@ class AtariDemo:
 
         self.agent = AtariNet(obs_shape, action_shape, self.net_conf)
 
+
     def import_weights(self,agent_path):
         with open(agent_path, 'rb') as f:
             weights = pickle.load(f)
         self.agent.set_weights(weights)
+
 
     def run(self,epsilon):
         time_step = self.env.reset()
@@ -55,6 +49,7 @@ class AtariDemo:
             time.sleep(0.02)
         self.env.close()
         print('\nThe agent scored {:.2f}\n'.format(score[0]))
+
 
 def main(agent_path,env_name,epsilon=0,conf_path=os.path.join('configs','net_large.config')):
     """
