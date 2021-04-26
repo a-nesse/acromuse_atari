@@ -40,7 +40,7 @@ class AtariDQN:
         self.collect_steps_per_iteration = self.dqn_conf['collect_steps_per_iteration']
         self.parallell_calls = self.dqn_conf['parallell_calls']
         self.batch_size = self.dqn_conf['batch_size']
-        self.target_update = self.dqn_conf['target_update']
+        self.target_update = int(np.ceil(self.dqn_conf['target_update'] / self.collect_steps_per_iteration))
         self.learning_rate = self.dqn_conf['learning_rate']
         self.log_interval = self.dqn_conf['log_interval']
         self.n_eval_steps = self.dqn_conf['n_eval_steps']
@@ -62,7 +62,7 @@ class AtariDQN:
             self.action_spec,
             conv_layer_params=[tuple(c) for c in self.net_conf['conv_layer_params']],
             fc_layer_params=tuple(self.net_conf['fc_layer_params']),
-            kernel_initializer=tf.keras.initializers.VarianceScaling(scale=2.0, mode='fan_in', distribution='truncated_normal'))
+            kernel_initializer=tf.keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='truncated_normal'))
 
         self.optimizer = tf.compat.v1.train.RMSPropOptimizer(
             learning_rate=self.dqn_conf['learning_rate'],
@@ -70,11 +70,9 @@ class AtariDQN:
             decay=self.dqn_conf['decay'],
             epsilon=self.dqn_conf['mom_epsilon'])
 
-        self.train_step_counter = tf.Variable(0)
-
         # Replay buffer size & initial collect -3 due to stacking 4 frames
         self.replay_buffer_max_length = self.dqn_conf['replay_buffer_max_length']-3
-        self.initial_collect = self.dqn_conf['initial_collect_frames']-3
+        self.initial_collect = int(np.ceil(((self.dqn_conf['initial_collect_frames']-3)/self.collect_steps_per_iteration)))
 
         self.initial_epsilon = self.dqn_conf['initial_epsilon']
         self.final_epsilon = self.dqn_conf['final_epsilon']
@@ -87,7 +85,6 @@ class AtariDQN:
             optimizer=self.optimizer,
             emit_log_probability=True,
             td_errors_loss_fn=common.element_wise_huber_loss,
-            train_step_counter=self.train_step_counter,
             epsilon_greedy=1.0,
             target_update_period=self.target_update,
             gamma=self.dqn_conf['discount'])
@@ -297,7 +294,7 @@ class AtariDQN:
 
         if restart_step:
             self.restart_training(restart_step)
-            self.agent.train_step_counter.assign(restart_step)
+            step = restart_step
             passed_time = self.log[str(restart_step)][0]
             policy_state = self.agent.collect_policy.get_initial_state(
                 self.train_env.batch_size)
@@ -310,7 +307,7 @@ class AtariDQN:
                 time_step, policy_state = self.driver.run(
                     time_step=time_step,
                     policy_state=policy_state)
-            self.agent.train_step_counter.assign(0)
+            step = 0
             passed_time = 0
 
         self.replay_ckp.initialize_or_restore()
@@ -346,7 +343,7 @@ class AtariDQN:
 
             # training
             train_loss = self.agent.train(experience).loss
-            step = self.agent.train_step_counter.numpy()
+            step += 1
 
             frames = int(step*self.batch_size*4)
             # changing epsilon linearly from frames 0 to 1 mill, down to 0.1
