@@ -1,5 +1,5 @@
 import numpy as np
-from atari_net import AtariNet
+from evo_utils.atari_net import AtariNet
 
 class AtariGen:
     """
