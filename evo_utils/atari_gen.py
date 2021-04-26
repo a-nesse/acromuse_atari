@@ -3,10 +3,14 @@ from evo_utils.atari_net import AtariNet
 
 class AtariGen:
     """
-    Class containing functions to evolve networks.
+    Class containing functions for creating a new generation of agents, 
+    given a set of agents and measures.
     """
 
     def __init__(self,evo_conf,net_conf,obs_shape,action_shape):
+        """
+        Initializes a AtariGen object.
+        """
         self.evo_conf = evo_conf
         self.net_conf = net_conf
         self.obs_shape = obs_shape
