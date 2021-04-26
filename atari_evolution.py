@@ -301,7 +301,7 @@ class AtariEvolution:
     def _score_agent(self, agent, max_steps, eval_elite=False):
         """
         Score one agent on the environment.
-        Returns the median score for ranking and 
+        Returns the median score for ranking and
         average score for evaluation.
         """
         steps = 0
