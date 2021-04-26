@@ -7,7 +7,7 @@ import time
 import numpy as np
 
 from tf_agents.environments import tf_py_environment
-from preprocessing import suite_atari_evo as suite_atari
+from preprocessing import suite_atari_mod as suite_atari
 
 from atari_net import AtariNet
 from atari_gen import AtariGen
