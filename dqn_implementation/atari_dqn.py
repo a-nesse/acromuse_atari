@@ -376,9 +376,8 @@ def main(step):
     '''
     Creates AtariDQN object and runs training according to configs.
     '''
-    net_conf = os.path.abspath(os.path.join('..', 'configs', 'net.config'))
-    dqn_conf = os.path.abspath(os.path.join(
-        '..', 'configs', 'dqn.config'))
+    net_conf = os.path.abspath(os.path.join('.', 'configs', 'net.config'))
+    dqn_conf = os.path.abspath(os.path.join('.', 'configs', 'dqn.config'))
     dqn = AtariDQN(net_conf, dqn_conf)
     if not os.path.isdir(os.path.join(os.getcwd(), 'saved_models_dqn')):
         os.makedirs(os.path.join(os.getcwd(), 'saved_models_dqn'))
