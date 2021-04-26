@@ -1,7 +1,8 @@
 # Modified by Andreas Nesse
 # Modified for evaluation.
-# Uses initial 'fire' action for certain environments requiring this.
-# No initial no-op frames or score normalizing.
+# Includes no-op frames after environment reset
+# & initial 'fire' action for certain environments requiring this.
+# No score clipping.
 #
 # coding=utf-8
 # Copyright 2020 The TF-Agents Authors.
@@ -110,6 +111,12 @@ Raises:
         # executing 'fire' step
         if self.env.game in ['breakout', 'beam_rider']:
             self.env.step(1)
+        # implemented a maximum 30 no-op
+        noops = np.random.randint(0, 31)
+        for _ in range(noops):
+            _, _, done, _ = self.env.step(0)
+            if done:
+                self.env.reset()
         self.lives = self.env.ale.lives()
         self.game_over = False
         self._fetch_grayscale_observation(self.screen_buffer[0])
