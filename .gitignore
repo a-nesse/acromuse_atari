@@ -23,3 +23,5 @@ replay_exp
 
 elite_models_evo/*
 dqn_implementation/elite_models_dqn/*
+log_reader.ipynb
+log_reader
