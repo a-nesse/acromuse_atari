@@ -20,3 +20,6 @@ dynamicstepdriver.py
 replay_exp
 *.pyc
 .vscode
+
+elite_models_evo/*
+dqn_implementation/elite_models_dqn/*
