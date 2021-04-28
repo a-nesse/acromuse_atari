@@ -12,7 +12,7 @@ testEvolution
 testEvolution.py
 saved_models/*
 saved_models_evo/*
-dqn_implementation/saved_models/*
+dqn_implementation/saved_models_dqn/*
 logs/*
 .pylintrc
 elite_models/*
