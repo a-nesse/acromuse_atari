@@ -299,7 +299,7 @@ class AtariEvolution:
         return False, ep_steps, episode_score
 
 
-    def _score_agent(self, agent, max_steps, eval_elite=False):
+    def _score_agent(self, agent, max_steps):
         """
         Score one agent on the environment.
         Returns the median score for ranking and
@@ -315,13 +315,7 @@ class AtariEvolution:
             scores.append(ep_score)
         
         max_ep_score = np.max(scores)
-
-        if eval_elite:
-            # using average score for evaluation of elite
-            agt_score = np.average(scores)
-        else:
-            # use median score for ranking agents
-            agt_score = np.median(scores)
+        agt_score = np.average(scores)
 
         return float(agt_score), float(max_ep_score), int(steps)
 
@@ -345,7 +339,7 @@ class AtariEvolution:
         """
         Function to run evaluation of elite agent.
         """
-        avg_score, max_score, _ = self._score_agent(self.agents[elite_agent],self.n_eval_steps,eval_elite=True)
+        avg_score, max_score, _ = self._score_agent(self.agents[elite_agent],self.n_eval_steps)
         print('Elite agent evaluation:\nAverage score: {}\nMax episode score: {}\n'.format(avg_score,max_score))
         return avg_score, max_score
 
