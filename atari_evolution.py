@@ -76,6 +76,7 @@ class AtariEvolution:
 
         self.log = {}
         self.elite_agents = {}
+        self.n_elite_eval = self.evo_conf['n_elite_eval']
         self.train_steps = 0
         self.n_weights = 0
 
@@ -332,17 +333,30 @@ class AtariEvolution:
             tot_steps += steps_i
             self.scores[i] = score_i
             print(score_i)
-        gen_elite_agent = int(np.argmax(self.scores))
-        return tot_steps, gen_elite_agent
+
+        #picking elite agent
+        elite_arr = np.argpartition(self.scores, -self.n_elite_eval)[-self.n_elite_eval:]
+        gen_elite_agent, elite_avg, elite_max = self._eval_score(elite_arr)
+
+        return tot_steps, gen_elite_agent, elite_avg, elite_max
 
 
-    def eval_score(self,elite_agent):
+    def _eval_score(self,elite_arr):
         """
-        Function to run evaluation of elite agent.
+        Function to run evaluation of candidate elite agents and pick highest scoring agent as elite.
         """
-        avg_score, max_score, _ = self._score_agent(self.agents[elite_agent],self.n_eval_steps)
-        print('Elite agent evaluation:\nAverage score: {}\nMax episode score: {}\n'.format(avg_score,max_score))
-        return avg_score, max_score
+        elite_idx = None
+        elite_avg = 0.0
+        elite_max = 0.0
+        for agt_i in elite_arr:
+            avg_i, max_i, _ = self._score_agent(self.agents[agt_i],self.n_eval_steps)
+            if avg_i>=elite_avg:
+                # set as elite
+                elite_idx = agt_i
+                elite_avg = avg_i
+                elite_max = max_i
+        print('Elite agent evaluation:\nAverage score: {}\nMax episode score: {}\n'.format(elite_avg,elite_max))
+        return int(elite_idx), elite_avg, elite_max
 
 
     def _arr_sum(self,arr):
@@ -469,11 +483,10 @@ class AtariEvolution:
         self._calc_n_weights()
         if not restart_gen:
             #for initializing generation zero
-            gen_steps, gen_elite_agent = self.generate_scores()
+            gen_steps, gen_elite_agent, elite_avg, elite_max = self.generate_scores()
             self.elite_agents[str(0)] = gen_elite_agent
             p_c, p_mut_div, p_mut_fit, tour_size = self.calc_measures()
             self.train_steps += gen_steps
-            elite_avg, elite_max = self.eval_score(gen_elite_agent)
             gen_time = time.time() - start_time
             self.log_data(
                 0,
@@ -519,11 +532,10 @@ class AtariEvolution:
             self.agents.clear()
             self.agents = new_agents
             print('Scoring ...')
-            gen_steps, gen_elite_agent = self.generate_scores()
+            gen_steps, gen_elite_agent, elite_avg, elite_max = self.generate_scores()
             self.elite_agents[str(gen)] = gen_elite_agent
             p_c, p_mut_div, p_mut_fit, tour_size = self.calc_measures()
             self.train_steps += gen_steps
-            elite_avg, elite_max = self.eval_score(gen_elite_agent)
             gen_time = time.time() - start_time
             self.log_data(
                 gen,
