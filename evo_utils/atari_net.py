@@ -11,14 +11,15 @@ class AtariNet(tf.keras.Sequential):
     """
 
 
-    def __init__(self, input_shape, action_shape, net_conf, minval=-1, maxval=1):
+    def __init__(self, input_shape, action_shape, net_conf, minval=-1, maxval=1, val_buffer=1e-6):
 
         super().__init__()
 
         self.minval = minval
         self.maxval = maxval
 
-        initializer = initializers.RandomUniform(minval=minval, maxval=maxval)
+        #initialize weights
+        initializer = initializers.RandomUniform(minval=(minval+val_buffer), maxval=maxval)
         
         self.action_shape = action_shape
 

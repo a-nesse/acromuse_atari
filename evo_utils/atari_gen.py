@@ -20,6 +20,7 @@ class AtariGen:
         self.k_p_mut = self.evo_conf['k_p_mut']
         self.minval = self.evo_conf['net_minval']
         self.maxval = self.evo_conf['net_maxval']
+        self.val_buffer = self.evo_conf['val_buffer']
 
 
     def _tournament(self,probs,n,size):
@@ -44,14 +45,14 @@ class AtariGen:
         return (arr1*sel1) + (arr2*sel2)
 
 
-    def _mutate(self,arr,p):
+    def _mutate(self,arr,p_mut):
         """
         Algorithm for applying normally distributed mutation to weights.
         Weights chosen with given mutation rate.
         """
-        mut = np.random.random_sample(arr.shape)<p
+        mut = np.random.random_sample(arr.shape)<p_mut
         no_mut = ~mut
-        mut_val = np.random.uniform(low=self.minval,high=self.maxval,size=arr.shape)
+        mut_val = np.random.uniform(low=(self.minval+self.val_buffer),high=self.maxval,size=arr.shape)
         return (no_mut*arr) + (mut*mut_val)
 
 
@@ -64,11 +65,16 @@ class AtariGen:
         if n_parent == 2:
             for i in range(n_layers):
                 nlw = self._uniform(agents[parent[0]].get_weights()[i], agents[parent[1]].get_weights()[i])
-                n_w.append(self._mutate(nlw,p_mut))
+                nlw = self._mutate(nlw,p_mut)
+                n_w.append(nlw)
         else:
             for i in range(n_layers):
-                n_w.append(self._mutate(agents[parent[0]].get_weights()[i],p_mut))
-        offspring = AtariNet(self.obs_shape, self.action_shape, self.net_conf, minval=self.minval,maxval=self.maxval)
+                nlw = self._mutate(agents[parent[0]].get_weights()[i],p_mut)
+                n_w.append(nlw)
+        offspring = AtariNet(
+            self.obs_shape,
+            self.action_shape,
+            self.net_conf)
         offspring.set_weights(n_w)
         return offspring
 
@@ -90,7 +96,10 @@ class AtariGen:
         new_agents = []
         n_layers = len(agents[0].get_weights())
         # carrying over elite agent
-        new_agents.append(AtariNet(self.obs_shape, self.action_shape, self.net_conf))
+        new_agents.append(AtariNet(
+            self.obs_shape,
+            self.action_shape,
+            self.net_conf))
         new_agents[-1].set_weights(agents[elite].get_weights())
         exploration_size = 0
         for _ in range(len(agents)-1):
