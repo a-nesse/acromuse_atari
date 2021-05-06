@@ -4,6 +4,7 @@ import os
 import pickle
 import sys
 import time
+from copy import deepcopy
 import numpy as np
 
 from tf_agents.environments import tf_py_environment
@@ -58,7 +59,6 @@ class AtariEvolution:
         self.val_buffer = self.evo_conf['val_buffer']
 
         self.scores = np.zeros(self.n_agents)
-        self.highest_score = [[0,0,0],[0,0,0]]
 
         self.spd = 0.0
         self.hpd = 0.0
@@ -144,10 +144,16 @@ class AtariEvolution:
         Method for logging data from training.
         """
         # logging highest performing elite agent across generations
-        if elite_avg>self.highest_score[0][2]:
-            self.highest_score[0] = [gen,self.elite_agents[str(gen)],elite_avg]
-        if elite_max>self.highest_score[1][2]:
-            self.highest_score[1] = [gen,self.elite_agents[str(gen)],elite_max]
+        if gen == 0:
+            highest_score = [
+                [gen,self.elite_agents[str(gen)],elite_avg],
+                [gen,self.elite_agents[str(gen)],elite_max]]
+        else:
+            highest_score = deepcopy(self.log[str(gen-1)][-1])
+            if elite_avg>highest_score[0][2]:
+                highest_score[0] = [gen,self.elite_agents[str(gen)],elite_avg]
+            if elite_max>highest_score[1][2]:
+                highest_score[1] = [gen,self.elite_agents[str(gen)],elite_max]
         self.log[str(gen)]=[
             gen_time,
             self.train_steps,
@@ -156,7 +162,7 @@ class AtariEvolution:
             self.spd,
             self.hpd,
             exploration_size,
-            self.highest_score]
+            highest_score]
         self._write_log()
         self._write_elite_dict()
 
