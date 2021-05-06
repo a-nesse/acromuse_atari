@@ -426,7 +426,7 @@ class AtariEvolution:
     def _calc_pc(self):
         "Calculates the probability of crossover given the SPD according to the ACROMUSE algorithm."
         spd_lim = self.spd_max if self.spd>self.spd_max else self.spd
-        return ((spd_lim/0.4)*(self.k2_pc-self.k1_pc))+self.k1_pc
+        return ((spd_lim/self.spd_max)*(self.k2_pc-self.k1_pc))+self.k1_pc
 
 
     def _calc_p_mut_fit(self):
@@ -448,9 +448,9 @@ class AtariEvolution:
         p_c = self._calc_pc()
         spd_lim = self.spd_max if self.spd>self.spd_max else self.spd
         hpd_lim = self.hpd_max if self.hpd>self.hpd_max else self.hpd
-        p_mut_div = ((0.4-spd_lim)/0.4)*self.k_p_mut
+        p_mut_div = ((self.spd_max-spd_lim)/self.spd_max)*self.k_p_mut
         p_mut_fit = self._calc_p_mut_fit()
-        tour_size = math.ceil((hpd_lim/0.3)*self.t_size_max)
+        tour_size = math.ceil((hpd_lim/self.hpd_max)*self.t_size_max)
         return p_c, p_mut_div, p_mut_fit, tour_size
 
 
