@@ -21,6 +21,9 @@ from preprocessing import suite_atari_mod as suite_atari
 class AtariDQN:
     """
     Class for training Deep-Q agent to play Atari games.
+    Inspired by the TF-Agents tutorials which can be found here:
+    https://www.tensorflow.org/agents/tutorials/2_environments_tutorial
+    Implemented for the purposes of the thesis.
     """
 
     def __init__(self, net_conf_path='', dqn_conf_path=''):
