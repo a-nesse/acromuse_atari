@@ -20,7 +20,7 @@ dynamicstepdriver.py
 replay_exp
 *.pyc
 .vscode
-
+configs/net_small.config
 elite_models_evo/*
 dqn_implementation/elite_models_dqn/*
 log_reader.ipynb
