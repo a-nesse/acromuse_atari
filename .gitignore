@@ -28,4 +28,4 @@ log_reader
 
 
 atari_combine.py
-config/combine.config
+configs/combine.config
