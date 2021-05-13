@@ -187,7 +187,7 @@ class AtariDQN:
             os.getcwd(), 'saved_models_dqn', self.save_name + '-' + str(step) + '-target')
         with open(filepath_target, 'rb') as f:
             new_target = pickle.load(f)
-        frames = int(step*self.batch_size*4)
+        frames = int(step*self.collect_steps_per_iteration)
         scaled_epsilon = self.initial_epsilon - \
             (0.9*frames/self.final_exploration)
         self.agent.collect_policy._epsilon = max(
@@ -214,7 +214,7 @@ class AtariDQN:
         train_time = cur_time - starttime + passed_time
         step = int(step)
         loss = float(loss)
-        frames = step * self.batch_size * 4
+        trained_frames = step * self.batch_size * 4
 
         if step % self.eval_interval == 0:
             # if elite, replace and potentially delete old elite
@@ -232,7 +232,7 @@ class AtariDQN:
                 if delete < keep and delete != 0 and delete != self.elite_avg[0]:
                     self.delete_model(delete)
 
-        self.log[step] = [train_time, loss, avg_score, max_score, frames, self.elite_avg, self.elite_max]
+        self.log[step] = [train_time, loss, avg_score, max_score, trained_frames, self.elite_avg, self.elite_max]
 
 
     def write_log(self):
@@ -348,7 +348,7 @@ class AtariDQN:
             train_loss = self.agent.train(experience).loss
             step += 1
 
-            frames = int(step*self.batch_size*4)
+            frames = int(step*self.collect_steps_per_iteration)
             # changing epsilon linearly from frames 0 to 1 mill, down to 0.1
             if frames <= self.final_exploration:
                 scaled_epsilon = self.initial_epsilon - \
