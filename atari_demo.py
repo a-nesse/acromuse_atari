@@ -1,4 +1,8 @@
 import os
+import json
+import pickle
+import sys
+import time
 
 from tf_agents.environments import tf_py_environment
 from evo_utils.atari_net import AtariNet
@@ -24,9 +28,8 @@ class AtariDemo:
 
         self.py_env = suite_atari.load(environment_name=env_name, eval_env=True)
         self.env = tf_py_environment.TFPyEnvironment(self.py_env)
- 
+        
         obs_shape = tuple(self.env.observation_spec().shape)
-        print(self.env.action_spec())
         action_shape = self.env.action_spec().maximum - self.env.action_spec().minimum + 1
 
         self.agent = AtariNet(obs_shape, action_shape, self.net_conf)
@@ -51,10 +54,11 @@ class AtariDemo:
         print('\nThe agent scored {:.2f}\n'.format(score[0]))
 
 
-def main(agent_path,env_name,epsilon=0,conf_path=os.path.join('configs','net_large.config')):
+def main(env_name,agent_path,epsilon=0,conf_name='net.config'):
     """
     Run demo of loaded agent.
     """
+    conf_path = os.path.join('configs',conf_name)
     demo = AtariDemo(env_name,conf_path)
     demo.import_weights(agent_path)
     demo.run(epsilon)
@@ -62,8 +66,8 @@ def main(agent_path,env_name,epsilon=0,conf_path=os.path.join('configs','net_lar
 if __name__ == "__main__":
     args = sys.argv[1:]
     if len(args)==4:
-        main(args[1],args[0],args[2],args[3])
+        main(args[0],args[1],float(args[2]),args[3])
     elif len(args)==3:
-    	main(args[1],args[0],float(args[2]))
+    	main(args[0],args[1],float(args[2]))
     else:
-        main(args[1],args[0])
+        main(args[0],args[1])
