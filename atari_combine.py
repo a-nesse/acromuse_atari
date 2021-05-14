@@ -178,7 +178,7 @@ def main(restart_step):
     """
     n_ga_gens = 5
     evo_folder = os.path.join(os.getcwd(),'saved_models_evo')
-    dqn_folder = os.path.join(os.getcwd(),'dqn_implementation','saved_models_dqn')
+    dqn_folder = os.path.join(os.getcwd(),'saved_models_dqn')
     conf_path = os.path.join(os.getcwd(),'configs')
     net_conf_path = os.path.join(conf_path, 'net.config')
     dqn_conf_path = os.path.join(conf_path, 'dqn.config')
