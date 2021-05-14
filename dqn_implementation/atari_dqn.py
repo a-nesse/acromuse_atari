@@ -43,7 +43,7 @@ class AtariDQN:
         self.collect_steps_per_iteration = self.dqn_conf['collect_steps_per_iteration']
         self.parallell_calls = self.dqn_conf['parallell_calls']
         self.batch_size = self.dqn_conf['batch_size']
-        self.target_update = int(np.ceil(self.dqn_conf['target_update'] / self.collect_steps_per_iteration))
+        self.target_update = self.dqn_conf['target_update']
         self.learning_rate = self.dqn_conf['learning_rate']
         self.log_interval = self.dqn_conf['log_interval']
         self.n_eval_steps = self.dqn_conf['n_eval_steps']
