@@ -43,6 +43,8 @@ class combine_GA_DQN:
         if not os.path.isdir(evo_folder):
             os.makedirs(evo_folder)
 
+        self.init_time = 0
+
 
     def _initialize_dqn_experience(self):
         """
@@ -56,21 +58,20 @@ class combine_GA_DQN:
         exp_init = AtariDQN(net_conf_path=self.net_conf_path,dqn_conf_path=self.dqn_conf_path)
         exp_init.num_iterations = 0 # no training
         exp_init.train() # buffer is saved to disk
-        init_time = init_start_time-time.time()
+        self.init_time = init_start_time-time.time()
         # deleting object & freeing up memory
         del exp_init
         gc.collect()
-        return init_time
 
 
     def _make_log_entry(self,gen_list):
         """
         Creates DQN log entry from ACROMUSE log entry.
         """
-        gen_time = gen_list[0]
+        time = gen_list[0] + self.init_time # add time to set up experience buffer
         elite_avg_score = gen_list[2]
         elite_max_score = gen_list[3]
-        entry = [gen_time,0,elite_avg_score,elite_max_score,0,[0,0],[0,0]]
+        entry = [time,0,elite_avg_score,elite_max_score,0,[0,0],[0,0]]
         return entry
 
 
