@@ -176,7 +176,7 @@ def main(restart_step):
     """
     Main function runs combined training and defines necessary parameters.
     """
-    n_ga_gens = 5
+    n_ga_gens = 6
     evo_folder = os.path.join(os.getcwd(),'saved_models_evo')
     dqn_folder = os.path.join(os.getcwd(),'saved_models_dqn')
     conf_path = os.path.join(os.getcwd(),'configs')
