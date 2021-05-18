@@ -17,9 +17,10 @@ class AtariNet(tf.keras.Sequential):
 
         self.minval = minval
         self.maxval = maxval
+        self.replace_min = minval+val_buffer
 
         #initialize weights
-        initializer = initializers.RandomUniform(minval=(minval+val_buffer), maxval=maxval)
+        initializer = initializers.RandomUniform(minval=minval, maxval=maxval)
         
         self.action_shape = action_shape
 
@@ -56,7 +57,7 @@ class AtariNet(tf.keras.Sequential):
 
     def get_scaled_weights(self):
         """
-        Returns weights shifted & scaled to the range [0,1] using the specified minimum & maximum weight value.
+        Returns weights shifted & scaled to the range <0,1> using the specified minimum & maximum weight value.
         """
         span = self.maxval-self.minval
         return (self.get_weights()-self.minval)/span
@@ -66,6 +67,10 @@ class AtariNet(tf.keras.Sequential):
         """
         Receives an array of np.arrays, converts to a list to set as weights for the agent.
         """
+        for i,layer in enumerate(weights):
+            #checking for any values equal to minval
+            if np.any(layer==self.minval):
+                weights[i]=np.where(weights[i]==self.minval,self.replace_min,weights[i])
         super().set_weights(list(weights))
 
 

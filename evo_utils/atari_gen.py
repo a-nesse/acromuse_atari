@@ -52,7 +52,7 @@ class AtariGen:
         """
         mut = np.random.random_sample(arr.shape)<p_mut
         no_mut = ~mut
-        mut_val = np.random.uniform(low=(self.minval+self.val_buffer),high=self.maxval,size=arr.shape)
+        mut_val = np.random.uniform(low=self.minval,high=self.maxval,size=arr.shape)
         return (no_mut*arr) + (mut*mut_val)
 
 
@@ -74,7 +74,8 @@ class AtariGen:
         offspring = AtariNet(
             self.obs_shape,
             self.action_shape,
-            self.net_conf)
+            self.net_conf,
+            val_buffer=self.val_buffer)
         offspring.set_weights(n_w)
         return offspring
 
