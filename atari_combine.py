@@ -5,7 +5,7 @@ import sys
 import gc
 import time
 
-from atari_evolution import AtariEvolution
+from atari_acromuse import AtariAcromuse
 from dqn_implementation.atari_dqn import AtariDQN
 
 class combine_GA_DQN:
@@ -144,7 +144,7 @@ class combine_GA_DQN:
         self._initialize_dqn_experience()
 
         # initial evolution
-        evolver = AtariEvolution(self.net_conf_path,self.evo_conf_path)
+        evolver = AtariAcromuse(self.net_conf_path,self.evo_conf_path)
         if not os.path.isdir(os.path.join(os.getcwd(),'saved_models_evo')):
             os.makedirs(os.path.join(os.getcwd(),'saved_models_evo'))
         evolver.n_gens = self.n_ga_gens # setting max generations

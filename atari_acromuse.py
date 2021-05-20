@@ -14,7 +14,7 @@ from evo_utils.atari_net import AtariNet
 from evo_utils.atari_gen import AtariGen
 
 
-class AtariEvolution:
+class AtariAcromuse:
     """
     Class for evolving networks to play Atari games.
     """
@@ -154,6 +154,7 @@ class AtariEvolution:
                 highest_score[0] = [gen,self.elite_agents[str(gen)],elite_avg]
             if elite_max>highest_score[1][2]:
                 highest_score[1] = [gen,self.elite_agents[str(gen)],elite_max]
+        gen_avg_score = np.average(self.scores)
         self.log[str(gen)]=[
             gen_time,
             self.train_steps,
@@ -161,6 +162,7 @@ class AtariEvolution:
             elite_max,
             self.spd,
             self.hpd,
+            gen_avg_score,
             exploration_size,
             highest_score]
         self._write_log()
@@ -565,7 +567,7 @@ def main(restart_gen):
     """
     net_path=os.path.abspath(os.path.join('configs','net.config'))
     evo_path=os.path.abspath(os.path.join('configs','acromuse.config'))
-    evolver = AtariEvolution(net_path,evo_path)
+    evolver = AtariAcromuse(net_path,evo_path)
     if not os.path.isdir(os.path.join(os.getcwd(),'saved_models_evo')):
         os.makedirs(os.path.join(os.getcwd(),'saved_models_evo'))
     evolver.evolve(restart_gen)
