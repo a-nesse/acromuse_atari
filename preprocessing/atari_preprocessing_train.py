@@ -112,8 +112,11 @@ Raises:
         # executing 'fire' step
         if self.env.game in ['breakout', 'beam_rider']:
             self.env.step(1)
-        # implemented a maximum 30 no-op
+        # implemented a no-op start, equivalent to 30 no-op actions
+        # this is inconsequential for SpaceInvaders, but is left in for other games
         noops = np.random.randint(0, 31)
+        # multiply by frame_skip to emulate actions
+        noops = noops * self.frame_skip
         for _ in range(noops):
             _, _, done, _ = self.env.step(0)
             if done:

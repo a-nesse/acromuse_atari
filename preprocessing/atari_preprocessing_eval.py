@@ -62,13 +62,14 @@ class AtariPreprocessing(gym_core.Wrapper):
             screen_size: int = 84):
         """Constructor for an Atari 2600 preprocessor.
         Args:
-                env: Gym environment whose observations are preprocessed.
-                frame_skip: int, the frequency at which the agent experiences the game.
-                terminal_on_life_loss: bool, If True, the step() method returns
-        is_terminal=True whenever a life is lost. See Mnih et al. 2015.
-        screen_size: int, size of a resized Atari 2600 frame.
-Raises:
-        ValueError: if frame_skip or screen_size are not strictly positive.
+            env: Gym environment whose observations are preprocessed.
+            frame_skip: int, the frequency at which the agent experiences the game.
+            terminal_on_life_loss: bool, If True, the step() method returns
+            is_terminal=True whenever a life is lost. See Mnih et al. 2015.
+            screen_size: int, size of a resized Atari 2600 frame.
+
+        Raises:
+            ValueError: if frame_skip or screen_size are not strictly positive.
         """
         super(AtariPreprocessing, self).__init__(env)
 
@@ -111,8 +112,11 @@ Raises:
         # executing 'fire' step
         if self.env.game in ['breakout', 'beam_rider']:
             self.env.step(1)
-        # implemented a maximum 30 no-op
+        # implemented a no-op start, equivalent to 30 no-op actions
+        # this is inconsequential for SpaceInvaders, but is left in for other games
         noops = np.random.randint(0, 31)
+        # multiply by frame_skip to emulate actions
+        noops = noops * self.frame_skip
         for _ in range(noops):
             _, _, done, _ = self.env.step(0)
             if done:

@@ -1,7 +1,7 @@
 # Modified by Andreas Nesse to use np.float32 for observations
 # rather than np.uint8 and setting stacking as default and
 # using fire on reset wrapper in case of certain environments.
-# Also modifies environment name to use correct version (Deterministic-v4).
+# Also modifies environment name to use correct version (NoFrameskip-v4).
 #
 # coding=utf-8
 # Copyright 2020 The TF-Agents Authors.
@@ -93,7 +93,7 @@ def load(
 
     environment_name = game(
         name=environment_name,
-        mode='Deterministic',
+        mode='NoFrameskip',
         version='v4')
 
     gym_spec = gym.spec(environment_name)
