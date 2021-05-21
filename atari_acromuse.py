@@ -2,6 +2,7 @@ import json
 import math
 import os
 import pickle
+from re import X
 import sys
 import time
 from copy import deepcopy
@@ -305,7 +306,7 @@ class AtariAcromuse:
             episode_score += obs.reward.numpy()[0]
             ep_steps += 1
             if ep_steps > max_steps:
-                return True, steps, None
+                return True, steps, episode_score
         return False, ep_steps, episode_score
 
 
@@ -317,12 +318,18 @@ class AtariAcromuse:
         """
         steps = 0
         scores = []
+        first_ep = True
 
         while True:
             done, steps, ep_score = self.run_episode(agent,max_steps,steps)
             if done:
-                break
+                if first_ep:
+                    scores.append(ep_score)
+                    break
+                else:
+                    break
             scores.append(ep_score)
+            first_ep = False
         
         max_ep_score = np.max(scores)
         agt_score = np.average(scores)
