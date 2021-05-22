@@ -537,7 +537,7 @@ class AtariAcromuse:
             print('\nEvolving generation {} ...\n'.format(gen))
             new_agents, exploration_size = self.evo.new_gen(
                 self.agents,
-                self.scores,
+                self.hpd_contrib,
                 p_c,
                 p_mut_div,
                 p_mut_fit,
