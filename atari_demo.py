@@ -49,7 +49,7 @@ class AtariDemo:
             time_step = self.env.step(action_step)
             score += time_step.reward
             self.env.render(mode='human')
-            time.sleep(0.02)
+            time.sleep(0.01)
         self.env.close()
         print('\nThe agent scored {:.2f}\n'.format(score[0]))
 
