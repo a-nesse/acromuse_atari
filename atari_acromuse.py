@@ -242,6 +242,7 @@ class AtariAcromuse:
         self._save_gen(gen)
         params = [
             list(self.scores),
+            list(self.hpd_contrib),
             self.spd,
             self.hpd,
             p_c,
@@ -256,8 +257,9 @@ class AtariAcromuse:
         Loads specified saved generation of agents and measures of that generation.
         """
         self._load_gen(gen)
-        scores, self.spd, self.hpd, p_c, p_mut_div, p_mut_fit, tour_size = self._load_gen_measures(gen)
+        scores, hpd_contrib, self.spd, self.hpd, p_c, p_mut_div, p_mut_fit, tour_size = self._load_gen_measures(gen)
         self.scores = np.array(scores)
+        self.hpd_contrib = np.array(hpd_contrib)
         return p_c, p_mut_div, p_mut_fit, tour_size
 
 
