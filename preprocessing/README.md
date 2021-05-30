@@ -8,7 +8,7 @@ Notice that there are two different preprocessing scripts, due to the difference
 ### References
 [1]
 D. Hafner, J. Davidson, and V. Vanhoucke, 
-"Tensorow agents: Effcient batched reinforcement learning in tensorow," 
+"Tensorflow agents: Effcient batched reinforcement learning in tensorflow," 
 2018. arXiv: 1709.02878[cs.LG].\
 [2]
 V. Mnih, K. Kavukcuoglu, D. Silver, A. Graves, I. Antonoglou, D. Wierstra, and M. Riedmiller, 
