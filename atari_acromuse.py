@@ -37,6 +37,18 @@ class AtariAcromuse:
         self,
         net_conf_path,
         evo_conf_path):
+        """
+        Initializes an object of the AtariAcromuse class.
+
+        Parameters:
+            net_conf_path : str
+                Path to the network configuration file.
+            evo_conf_path : str
+                Path to the acromuse configuration file.
+
+        Returns:
+            AtariAcromuse object.
+        """
         
         def _load_config(conf_path):
             try:
@@ -155,7 +167,22 @@ class AtariAcromuse:
         elite_max,
         exploration_size):
         """
-        Method for logging data from training.
+        Method for logging data from training and saving to file.
+
+        Parameters:
+            gen : int
+                Generation number.
+            gen_time : float
+                The time when this generation is finished.
+            elite_avg : float
+                The average evaluation score of the elite agent.
+            elite_max : float
+                The maximum evaluation episode score of the elite agent.
+            exploration_size : int
+                The number of individuals in the exploration subpopulation.
+
+        Returns:
+            None
         """
         # logging highest performing elite agent across generations
         if gen == 0:
@@ -183,7 +210,7 @@ class AtariAcromuse:
         self._write_elite_dict()
 
 
-    def load_log_elite(self):
+    def _load_log_elite(self):
         """
         Method for loading log & list of elites from file.
         """
@@ -251,7 +278,23 @@ class AtariAcromuse:
         p_mut_fit,
         tour_size):
         """
-        Method for saving current generation for restarting, in case of training stop.
+        Method for saving current generation and generation measures to file.
+        These can be used to restart training in case of stops.
+
+        Parameters:
+            gen : int
+                Generation number.
+            p_c : float
+                Crossover rate.
+            p_mut_div : float
+                Diversity component of mutation rate.
+            p_mut_fit : list
+                List of individual fitness components of mutation rate.
+            tour_size : int
+                Size of selection tournament.
+
+        Returns:
+            None
         """
         self._save_gen(gen)
         params = [
@@ -269,6 +312,20 @@ class AtariAcromuse:
     def load_checkpoint(self,gen):
         """
         Loads specified saved generation of agents and measures of that generation.
+
+        Parameters:
+            gen : int
+                Generation numnber to load.
+            
+        Returns:
+            p_c : float
+                Crossover rate.
+            p_mut_div : float
+                Diversity component of mutation rate.
+            p_mut_fit : list
+                List of individual fitness components of mutation rate.
+            tour_size : int
+                Size of selection tournament.
         """
         self._load_gen(gen)
         scores, hpd_contrib, self.spd, self.hpd, p_c, p_mut_div, p_mut_fit, tour_size = self._load_gen_measures(gen)
@@ -279,7 +336,12 @@ class AtariAcromuse:
 
     def zero_net(self):
         """
-        Returns an array containing 0-arrays with same shape as net weights.
+        Method for getting an object array of 0-arrays
+        with the same shape as the network weights.
+
+        Returns:
+            zero_net : numpy.ndarray
+                Array containing 0-arrays with same shape as net weights.
         """
         zero_net = []
         for layer in self.net_shape:
@@ -288,7 +350,9 @@ class AtariAcromuse:
 
 
     def _save_net_shape(self):
-        "Method for saving shape of network."
+        """
+        Method for saving shape of network.
+        """
         shapes = []
         for w in self.agents[0].get_weights():
             shapes.append(w.shape)
@@ -306,7 +370,7 @@ class AtariAcromuse:
         self.n_weights = n_weights
 
 
-    def run_episode(self,agent,max_steps,steps):
+    def _run_episode(self,agent,max_steps,steps):
         """
         Function for running an episode in the environment.
         Returns the score if the episode is finished without
@@ -325,18 +389,33 @@ class AtariAcromuse:
         return False, ep_steps, episode_score
 
 
-    def _score_agent(self, agent, max_steps):
+    def score_agent(self, agent, max_steps):
         """
         Score one agent on the environment.
         Returns the median score for ranking and
         average score for evaluation.
+
+        Parameters:
+            agent : AtariNet object
+                Agent to run episode with.
+            max_steps : int
+                Maximum number of steps to run for.
+
+        Returns:
+            agt_score : float
+                The average episode score for the agent.
+            max_ep_score : float
+                The maximum episode score for the agent.
+            steps : int
+                Number of steps that were actually run, 
+                only full episodes count.
         """
         steps = 0
         scores = []
         first_ep = True
 
         while True:
-            done, steps, ep_score = self.run_episode(agent,max_steps,steps)
+            done, steps, ep_score = self._run_episode(agent,max_steps,steps)
             if done:
                 if first_ep:
                     scores.append(ep_score)
@@ -354,12 +433,23 @@ class AtariAcromuse:
 
     def generate_scores(self):
         """
-        Generate scores for all agents in the generation.
+        Generate scores for all agents in the generation
+        and evaluate and determine elite agents.
+
+        Returns:
+            tot_steps : int
+                Total number of steps run for all agents.
+            gen_elite_agent : int
+                Index of elite agent in generation.
+            elite_avg : float
+                The average evaluation score for the elite agent.
+            elite_max : float
+                The maximum evaluation episode score for the elite agent.
         """
         tot_steps= 0
         for i, agt in enumerate(self.agents):
             print('Scoring agent {}...  '.format(i+1))
-            score_i, _, steps_i = self._score_agent(agt, self.n_rank_steps)
+            score_i, _, steps_i = self.score_agent(agt, self.n_rank_steps)
             tot_steps += steps_i
             self.scores[i] = score_i
             print(score_i)
@@ -379,7 +469,7 @@ class AtariAcromuse:
         elite_avg = 0.0
         elite_max = 0.0
         for agt_i in elite_arr:
-            avg_i, max_i, _ = self._score_agent(self.agents[agt_i],self.n_eval_steps)
+            avg_i, max_i, _ = self.score_agent(self.agents[agt_i],self.n_eval_steps)
             if avg_i>=elite_avg:
                 # set as elite
                 elite_idx = agt_i
@@ -390,7 +480,9 @@ class AtariAcromuse:
 
 
     def _arr_sum(self,arr):
-        "Function summing all elements in array of np.arrays"
+        """
+        Function summing all elements in array of np.arrays.
+        """
         tot_sum = 0
         for a in arr:
             tot_sum += np.sum(a)
@@ -398,7 +490,9 @@ class AtariAcromuse:
     
 
     def _arr_sqrt(self,arr):
-        "Function finding the square root of all elements in array of np.arrays"
+        """
+        Function finding the square root of all elements in array of np.arrays.
+        """
         nw = []
         for a in arr:
             nw.append(np.sqrt(a))
@@ -425,7 +519,9 @@ class AtariAcromuse:
 
 
     def _calc_spd(self):
-        "Method for calculation standard population diversity."
+        """
+        Method for calculation standard population diversity.
+        """
         gene_sum = self.zero_net()
         for agt in self.agents:
             gene_sum += (agt.get_scaled_weights()-self.spd_avg)**2
@@ -438,7 +534,9 @@ class AtariAcromuse:
 
 
     def _calc_hpd(self):
-        "Method for calculation healthy population diversity."
+        """
+        Method for calculation healthy population diversity.
+        """
         self.hpd_contrib = np.zeros(self.n_agents)
         weighted_gene_sum = self.zero_net()
         for i, agt in enumerate(self.agents):
@@ -454,12 +552,17 @@ class AtariAcromuse:
 
 
     def _calc_pc(self):
-        "Calculates the probability of crossover given the SPD according to the ACROMUSE algorithm."
+        """
+        Calculates the probability of crossover given the SPD according to the ACROMUSE algorithm.
+        """
         spd_lim = self.spd_max if self.spd>self.spd_max else self.spd
         return ((spd_lim/self.spd_max)*(self.k2_pc-self.k1_pc))+self.k1_pc
 
 
     def _calc_p_mut_fit(self):
+        """
+        Calculates the individual fitness components of the mutation rate.
+        """
         p_muts = []
         f_max = np.max(self.scores)
         f_min = np.min(self.scores)
@@ -471,6 +574,16 @@ class AtariAcromuse:
     def calc_measures(self):
         """
         Method that runs the calculations for the SPD and HPD measures.
+
+        Returns:
+            p_c : float
+                Crossover rate.
+            p_mut_div : float
+                Diversity component of mutation rate.
+            p_mut_fit : list
+                List of individual fitness components of mutation rate.
+            tour_size : int
+                Size of selection tournament.
         """
         self._find_avg_agent()
         self._calc_spd()
@@ -486,9 +599,29 @@ class AtariAcromuse:
 
     def restart_training(self,gen):
         """
-        Method for restarting training from saved agent checkpoint.
+        Method for restarting training from saved agent checkpoint
+        and returning generation parameters used to created
+        offspring generation.
+
+        Parameters:
+            gen : int
+                Generation number to restart from.
+        
+        Returns:
+            gen_time : float
+                Time when restart generation was finished
+            steps : int
+                Total number of steps taken so far.
+            p_c : float
+                Crossover rate.
+            p_mut_div : float
+                Diversity component of mutation rate.
+            p_mut_fit : list
+                List of individual fitness components fo mutation rate.
+            tour_size : int
+                Size of selection tournament.
         """
-        self.load_log_elite()
+        self._load_log_elite()
         gen_time = self.log[str(gen)][0]
         steps = self.log[str(gen)][1]
         p_c, p_mut_div, p_mut_fit, tour_size = self.load_checkpoint(gen)
@@ -497,7 +630,29 @@ class AtariAcromuse:
 
     def initialize_gen(self,start_time,restart_gen):
         """
-        Method for initializing first generation of agents.
+        Method for initializing first generation of agents
+        or reloading agents from restart generation.
+
+        Parameters:
+            start_time : float
+                The time training started.
+            restart_gen : int
+                Generation number to restart from,
+                0 creates a new initial generation.
+
+        Returns:
+            gen_time : float
+                Time generation finished.
+            gen_steps : int
+                Number of steps taken in generation.
+            p_c : float
+                Crossover rate.
+            p_mut_div : float
+                Diversity component of mutation rate.
+            p_mut_fit : list
+                List of individual fitness components fo mutation rate.
+            tour_size : int
+                Size of selection tournament.
         """
         self.agents = []
         for _ in range(self.n_agents):
@@ -541,7 +696,15 @@ class AtariAcromuse:
 
     def evolve(self,restart_gen):
         """
-        Method that develops agents through evolution.
+        Method that runs evolution of generations of agents.
+
+        Parameters:
+            restart_gen : int
+                Generation to restart training from,
+                0 means starting from new initial generation.
+
+        Returns:
+            None
         """
         start_time = time.time()
         print('Initializing...')
@@ -586,6 +749,14 @@ class AtariAcromuse:
 def main(restart_gen):
     """
     Main function runs evolution using the config files.
+
+    Parameters:
+        restart_gen : int
+            Generation to restart training from,
+            0 means starting from new initial generation.
+
+     Returns:
+        None
     """
     net_path=os.path.abspath(os.path.join('configs','net.config'))
     evo_path=os.path.abspath(os.path.join('configs','acromuse.config'))

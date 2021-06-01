@@ -24,8 +24,27 @@ class AtariNet(tf.keras.Sequential):
     Wrapper class for creating Keras network used for playing Atari games.
     """
 
-
     def __init__(self, input_shape, action_shape, net_conf, minval=-1, maxval=1, val_buffer=1e-6):
+        """
+        Initializes an AtariNet object based on the Keras Sequential class.
+
+        Parameters:
+            input_shape : tuple
+                Shape of environment observation input to the network.
+            action_shape : int
+                Number of actions available in the environment.
+            net_conf : dict
+                Dictionary specifying the network configuration.
+            minval : int
+                Lower bound of network weights.
+            maxval : int
+                Upper bound of network weights.
+            val_buffer : float
+                Buffer value to replace lower bound value weights.
+
+        Returns:
+            AtariNet object.
+        """
 
         super().__init__()
 
@@ -65,6 +84,10 @@ class AtariNet(tf.keras.Sequential):
     def get_weights(self):
         """
         Gets weights and converts to an array of np.array objects.
+
+        Returns:
+            weights : numpy.ndarray
+                Numpy object array of network weights.
         """
         return np.array(super().get_weights(),dtype=object)
 
@@ -72,6 +95,10 @@ class AtariNet(tf.keras.Sequential):
     def get_scaled_weights(self):
         """
         Returns weights shifted & scaled to the range <0,1> using the specified minimum & maximum weight value.
+
+        Returns:
+            weights : numpy.ndarray
+                Numpy object array of shifted and scaled network weights.
         """
         span = self.maxval-self.minval
         return (self.get_weights()-self.minval)/span
@@ -80,6 +107,13 @@ class AtariNet(tf.keras.Sequential):
     def set_weights(self,weights):
         """
         Receives an array of np.arrays, converts to a list to set as weights for the agent.
+
+        Parameters
+            weights : numpy.ndarray
+                Numpy object array of network layer weights.
+
+        Returns:
+            None
         """
         for i,layer in enumerate(weights):
             #checking for any values equal to minval
@@ -90,7 +124,18 @@ class AtariNet(tf.keras.Sequential):
 
     def action(self, observation, epsilon=0):
         """
-        Returns action with highest activation in output layer.
+        Selects action given an observation in the environment.
+
+        Parameters:
+            observation : tf_agents.trajectories.TimeStep
+                Observation from the environment.
+            epsilon : int
+                Optional epsilon probability of choosing random action.
+                Defaults to 0.
+        
+        Returns:
+            action : int
+                Selected action index.
         """
         if epsilon and epsilon>np.random.rand():
             return np.random.randint(self.action_shape)

@@ -23,8 +23,22 @@ class AtariGen:
 
     def __init__(self,evo_conf,net_conf,obs_shape,action_shape):
         """
-        Initializes a AtariGen object.
+        Initializes an AtariGen object.
+
+        Parameters:
+            evo_conf : dict
+                Dictionary with hyperparameters for evolution.
+            net_conf : dict
+                Dictionary with network configuration.
+            obs_shape : tuple
+                Shape of environment observation.
+            action_shape : int
+                Number of actions available in the environment.
+
+        Returns:
+            AtariGen object
         """
+
         self.evo_conf = evo_conf
         self.net_conf = net_conf
         self.obs_shape = obs_shape
@@ -72,7 +86,7 @@ class AtariGen:
 
     def _create_offspring(self,agents,parent,n_layers,p_mut):
         """
-        Function to create offpsring.
+        Function to create offpsring from parent agents.
         """
         n_w = []
         n_parent = len(parent)
@@ -107,6 +121,29 @@ class AtariGen:
     def new_gen(self,agents,probs,p_c,p_mut_div,p_mut_fit,tour_size,elite):
         """
         Function for creating new generation of agents.
+
+        Parameters:
+            agents : list
+                List of agents in parent generation.
+            probs : list
+                List of agent rankings/scores.
+                For ACROMUSE, HPD contribution is used.
+            p_c : float
+                Crossover rate.
+            p_mut_div : float
+                Diversity component of mutation rate.
+            p_mut_fit : list
+                List of individual fitness components fo mutation rate.
+            tour_size : int
+                Size of selection tournament.
+            elite : int
+                Index of elite agent in parent generation.
+
+        Returns:
+            new_agents : list
+                List containing new generation of AtariNet agents.
+            exploration_size : int
+                Size of exploration subpopulation.
         """
         new_agents = []
         n_layers = len(agents[0].get_weights())

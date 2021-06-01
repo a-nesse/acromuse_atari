@@ -41,6 +41,18 @@ class AtariDQN:
     """
 
     def __init__(self, net_conf_path='', dqn_conf_path=''):
+        """
+        Initializes an AtariDQN object using configuration files.
+
+        Parameters:
+            net_conf_path : str
+                Path to network configuration file.
+            dqn_conf_path : str
+                Path to DQN hyperparameter configuration file.
+        
+        Returns:
+            AtariDQN object.
+        """
 
         def _load_config(conf_path):
             assert os.path.exists(
@@ -129,11 +141,19 @@ class AtariDQN:
         '''
         Method for predicting action.
         Uses epsilon-greedy policy to avoid evaluation overfitting.
+
+        Parameters:
+            obs : tf_agents.trajectories.TimeStep
+                Observation from environment.
+        
+        Returns:
+            action : tf_agents.trajectories.PolicyStep
+                Action agent chooses to take based on the observation.
         '''
         return self.eval_policy.action(obs)
 
     
-    def run_episode(self,steps):
+    def _run_episode(self,steps):
         """
         Function for running an episode in the environment.
         Returns the score if the episode is finished without
@@ -154,23 +174,29 @@ class AtariDQN:
     def evaluate_agent(self):
         """
         Function for evaluating/scoring agent. 
+
+        Returns:
+            avg_score : float
+                Average episode score for agent.
+            max_score : float
+                Maximum episode score for agent.
         """
         steps = 0
         scores = []
 
         # run once outside loop in unlikely case first episode lasts
         # for all the evaluation frames
-        done, steps, ep_score = self.run_episode(steps)
+        done, steps, ep_score = self._run_episode(steps)
         scores.append(ep_score)
 
         while True and not done:
-            done, steps, ep_score = self.run_episode(steps)
+            done, steps, ep_score = self._run_episode(steps)
             if done:
                 return np.average(scores), np.max(scores)
             scores.append(ep_score)
 
 
-    def save_model(self, step):
+    def _save_model(self, step):
         """
         Method for saving agent and deleting old agents.
         Saves both q network and target network.
@@ -186,10 +212,10 @@ class AtariDQN:
         # deleting old agents
         delete = step-(self.eval_interval*self.keep_n_models)
         if delete > 0 and self.elite_avg[0] != delete and self.elite_max[0] != delete:
-            self.delete_model(delete)
+            self._delete_model(delete)
 
 
-    def load_model(self, step):
+    def _load_model(self, step):
         """
         Method for loading q & target network.
         """
@@ -210,7 +236,7 @@ class AtariDQN:
         self.agent._target_q_network.set_weights(new_target)
 
 
-    def delete_model(self, step):
+    def _delete_model(self, step):
         """
         Function for deleting agent.
         """
@@ -223,6 +249,24 @@ class AtariDQN:
     def log_data(self, starttime, passed_time, step, loss, avg_score, max_score):
         """
         Function for logging training performance.
+
+        Parameters:
+            starttime : float
+                Time when training was started or restarted.
+            passed_time : float
+                Time that was trained before restarting.
+                Set to 0 if training has not been restarted.
+            step : int
+                Number of training steps that have been performed so far.
+            loss : float
+                The loss at this step.
+            avg_score : float
+                The average agent score from the last evaluation.
+            max_score : float
+                The maximum episode score from the last evaluation.
+        
+        Returns:
+            None
         """
         cur_time = time.time()
         train_time = cur_time - starttime + passed_time
@@ -238,18 +282,18 @@ class AtariDQN:
                 self.elite_avg = (step, avg_score)
                 # delete if not within keep interval
                 if delete < keep and delete != 0 and delete != self.elite_max[0]:
-                    self.delete_model(delete)
+                    self._delete_model(delete)
             if max_score > self.elite_max[1] and step >= self.eval_interval:
                 delete = self.elite_max[0]
                 self.elite_max = (step, max_score)
                 # delete if not within keep interval
                 if delete < keep and delete != 0 and delete != self.elite_avg[0]:
-                    self.delete_model(delete)
+                    self._delete_model(delete)
 
         self.log[step] = [train_time, loss, avg_score, max_score, trained_frames, self.elite_avg, self.elite_max]
 
 
-    def write_log(self):
+    def _write_log(self):
         """
         Function for writing log.
         """
@@ -259,7 +303,7 @@ class AtariDQN:
             json.dump(self.log, f)
 
 
-    def load_log(self, step):
+    def _load_log(self, step):
         """
         Function for loading log.
         """
@@ -275,14 +319,29 @@ class AtariDQN:
     def restart_training(self, step):
         """
         Function for restarting training from step.
+
+        Parameters:
+            step : int
+                Which step to restart training from.
+
+        Returns:
+            None
         """
-        self.load_model(step)
-        self.load_log(step)
+        self._load_model(step)
+        self._load_log(step)
 
 
     def train(self, restart_step=0):
         """
         Method for running training of DQN model.
+
+        Parameters:
+            restart_step : int
+                Step to restart training from.
+                Defaults to 0 for fresh start.
+        
+        Returns:
+            None
         """
         tf.compat.v1.enable_v2_behavior()
         time_step = self.train_env.reset()
@@ -374,7 +433,7 @@ class AtariDQN:
                 exploration_finished = True
 
             if step % self.eval_interval == 0 and step != restart_step:
-                self.save_model(step)
+                self._save_model(step)
                 self.replay_ckp.save(global_step=step)
                 avg_score, max_score = self.evaluate_agent()
                 print('step = {}: Average Score = {} Max Score = {}'.format(
@@ -385,20 +444,29 @@ class AtariDQN:
                 self.log_data(start_time, passed_time, step,
                               train_loss, avg_score, max_score)
                 if step % self.eval_interval == 0:
-                    self.write_log()
+                    self._write_log()
                 print('step = {}: loss = {}'.format(step, train_loss))
 
 
-def main(step):
-    '''
+def main(restart_step):
+    """
     Creates AtariDQN object and runs training according to configs.
-    '''
+
+    Parameters:
+        restart_step : int
+            Step to restart training from.
+            Restart_step = 0 gives fresh start.
+
+    Returns:
+        None
+    """
+    
     net_conf = os.path.abspath(os.path.join('.', 'configs', 'net.config'))
     dqn_conf = os.path.abspath(os.path.join('.', 'configs', 'dqn.config'))
     dqn = AtariDQN(net_conf, dqn_conf)
     if not os.path.isdir(os.path.join(os.getcwd(), 'saved_models_dqn')):
         os.makedirs(os.path.join(os.getcwd(), 'saved_models_dqn'))
-    dqn.train(step)
+    dqn.train(restart_step)
 
 
 if __name__ == "__main__":
