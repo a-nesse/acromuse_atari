@@ -1,6 +1,8 @@
 # ACROMUSE and DQN implementation for playaing Atari games
 The `atari_acromuse.py` script runs evolutionary training of agents using the ACROMUSE approach[1]. When restarting training, simply run `python atari_acromuse.py restart_generation` with `restart_generation` replaced by the generation number to restart training from. 
 
+The `atari_demo.py` will run a demo of an agent within a specified environment. Use `python atari_demo.py environment_name agent_path optional_epsilon_value optional_net_config_path`. 
+
 
 ### Configs
 See the *configs* folder for configuration files for the models. Here training hyperparameters and network structure can be changed.
