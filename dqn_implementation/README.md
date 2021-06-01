@@ -1,6 +1,6 @@
 # DQN Implementation
 
-To run this DQN implementation, navigate to the parent directory and run the command `python -m dqn_implementation.atari_dqn.py`.
+To run this DQN implementation, navigate to the parent directory and run the command `python -m dqn_implementation.atari_dqn.py`. When restarting training, simply run `python -m dqn_implementation.atari_dqn.py restart_step` from teh parent directory with `restart_step` replaced by the step number to restart training from. 
 
 This is an attempt at implementing a somewhat modified deep-Q network approach to playing Atari games, described in the papers "Playing Atari with Deep Reinforcement Learning"[1] and "Human-level control through deep reinforcement learning"[2]. See the config files to for the network structure and hyperparameters used, which deviate somewhat from the papers.
 
@@ -19,4 +19,4 @@ V. Mnih, K. Kavukcuoglu, D. Silver, A. Graves, I. Antonoglou, D. Wierstra, and M
 [2]
 V. Mnih, K. Kavukcuoglu, D. Silver, A. A. Rusu, J. Veness, M. G. Bellemare, A. Graves, M. Riedmiller, A. K. Fidjeland, G. Ostrovski, S. Petersen, C. Beattie, A. Sadik, I. Antonoglou, H. King, D. Kumaran, D.Wierstra, S. Legg, and D. Hassabis, 
 "Human-level control through deep reinforcement learning," 
-Nature, vol. 518, pp. 529-533, 2015. doi: https://doi.org/10.1038/nature14236.
+*Nature*, vol. 518, pp. 529-533, 2015. doi: https://doi.org/10.1038/nature14236.

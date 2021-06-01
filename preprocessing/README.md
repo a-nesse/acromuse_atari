@@ -17,4 +17,4 @@ V. Mnih, K. Kavukcuoglu, D. Silver, A. Graves, I. Antonoglou, D. Wierstra, and M
 [3]
 V. Mnih, K. Kavukcuoglu, D. Silver, A. A. Rusu, J. Veness, M. G. Bellemare, A. Graves, M. Riedmiller, A. K. Fidjeland, G. Ostrovski, S. Petersen, C. Beattie, A. Sadik, I. Antonoglou, H. King, D. Kumaran, D.Wierstra, S. Legg, and D. Hassabis, 
 "Human-level control through deep reinforcement learning," 
-Nature, vol. 518, pp. 529-533, 2015. doi: https://doi.org/10.1038/nature14236.
+*Nature*, vol. 518, pp. 529-533, 2015. doi: https://doi.org/10.1038/nature14236.
