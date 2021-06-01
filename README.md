@@ -1,7 +1,9 @@
 # ACROMUSE and DQN implementation for playaing Atari games
-The `atari_acromuse.py` script runs evolutionary training of agents using the ACROMUSE approach[1]. When restarting training, simply run `python atari_acromuse.py restart_generation` with `restart_generation` replaced by the generation number to restart training from. 
+The `atari_acromuse.py` script runs evolutionary training of agents using the ACROMUSE approach[1]. When restarting training, simply run `python atari_acromuse.py restart_generation` with `restart_generation` replaced by the generation number to restart training from. The agents are scored using a specified number of steps within the environment and the top n agents are evaluated to determine the elite. As default, the config is set to use 2000 steps to rank the agents and only evaluate the highest scoring as the elite agent. All agents are saved during training.
 
 The `atari_demo.py` will run a demo of an agent within a specified environment. Use `python atari_demo.py environment_name agent_path optional_epsilon_value optional_net_config_path`. 
+
+For the DQN implementation, check the `dqn_implementation` folder or run `python -m dqn_implementation.atari_dqn.py` from this parent directory.
 
 
 ### Configs
