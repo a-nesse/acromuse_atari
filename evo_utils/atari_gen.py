@@ -86,7 +86,7 @@ class AtariGen:
 
     def _create_offspring(self,agents,parent,n_layers,p_mut):
         """
-        Function to create offpsring from parent agents.
+        Function to create offspring from parent agents.
         """
         n_w = []
         n_parent = len(parent)
